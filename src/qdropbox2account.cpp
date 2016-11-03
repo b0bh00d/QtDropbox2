@@ -1,60 +1,58 @@
 #include "qdropbox2account.h"
 
-QDropbox2User::QDropbox2User(QObject *parent) :
-    QDropbox2Json(parent)
+QDropbox2User::QDropbox2User(QObject *parent)
+    : QObject(parent)
 {
 }
 
-QDropbox2User::QDropbox2User(QString jsonString, QObject *parent) :
-    QDropbox2Json(jsonString, parent)
+QDropbox2User::QDropbox2User(const QJsonObject& jsonData, QObject *parent)
+    : QObject(parent)
 {
-    init();
+    init(jsonData);
 }
 
-QDropbox2User::QDropbox2User(const QDropbox2User& other) :
-    QDropbox2Json()
+QDropbox2User::QDropbox2User(const QDropbox2User& other)
+    : QObject()
 {
     copyFrom(other);
 }
 
-void QDropbox2User::init()
+void QDropbox2User::init(const QJsonObject& jsonData)
 {
-    if(!isValid())
-    {
-        valid = false;
-        return;
-    }
-
-    if(!hasKey("referral_link") ||
-       !hasKey("name")  ||
-       !hasKey("account_id") ||
-       !hasKey("country") ||
-       //!hasKey("quota_info") ||
-       !hasKey("email"))
+    if(jsonData.isEmpty() ||
+       !jsonData.contains("referral_link") ||
+       !jsonData.contains("name")  ||
+       !jsonData.contains("account_id") ||
+       !jsonData.contains("country") ||
+       !jsonData.contains("email"))
     {
 #ifdef QTDROPBOX_DEBUG
         qDebug() << "json invalid 1" << endl;
 #endif
-        valid = false;
-        return;
+        _valid = false;
     }
+    else
+    {
+        _referralLink.setUrl(jsonData.value("referral_link").toString(), QUrl::StrictMode);
 
-    _referralLink.setUrl(getString("referral_link"), QUrl::StrictMode);
-    QDropbox2Json* name = getJson("name");
-    _displayName    = name->getString("display_name");
-    _id             = getString("account_id");
-    _country        = getString("country");
-    _email          = getString("email");
-    _emailVerified  = getBool("email_verified");
-    _locale         = getString("locale");
-    _isPaired       = getBool("is_paired");
-    QDropbox2Json* account_type = getJson("account_type");
-    _type           = account_type->getString(".tag");
-    _isDisabled     = getBool("disabled");
-    if(hasKey("profile_photo_url"))
-        _profilePhoto.setUrl(getString("profile_photo_url"), QUrl::StrictMode);
+        QJsonObject name = jsonData.value("name").toObject();
+        _displayName    = name.value("display_name").toString();
+        _id             = name.value("account_id").toString();
+        _country        = name.value("country").toString();
+        _email          = name.value("email").toString();
+        _emailVerified  = name.value("email_verified").toBool();
+        _locale         = name.value("locale").toString();
+        _isPaired       = name.value("is_paired").toBool();
 
-    valid = true;
+        QJsonObject account_type = jsonData.value("account_type").toObject();
+        _type           = account_type.value(".tag").toString();
+        _isDisabled     = jsonData.value("disabled").toBool();
+
+        if(jsonData.contains("profile_photo_url"))
+            _profilePhoto.setUrl(jsonData.value("profile_photo_url").toString(), QUrl::StrictMode);
+
+        _valid = true;
+    }
 
 #ifdef QTDROPBOX_DEBUG
     qDebug() << "== account data ==" << endl;
@@ -148,47 +146,44 @@ void QDropbox2User::copyFrom(const QDropbox2User &other)
 
 //------------------------------------------------------
 
-QDropbox2Usage::QDropbox2Usage(QObject *parent) :
-    QDropbox2Json(parent)
+QDropbox2Usage::QDropbox2Usage(QObject *parent)
+    : QObject(parent)
 {
 }
 
-QDropbox2Usage::QDropbox2Usage(QString jsonString, QObject *parent) :
-    QDropbox2Json(jsonString, parent)
+QDropbox2Usage::QDropbox2Usage(const QJsonObject& jsonData, QObject *parent)
+    : QObject(parent)
 {
-    init();
+    init(jsonData);
 }
 
-QDropbox2Usage::QDropbox2Usage(const QDropbox2Usage& other) :
-    QDropbox2Json()
+QDropbox2Usage::QDropbox2Usage(const QDropbox2Usage& other)
+    : QObject()
 {
     copyFrom(other);
 }
 
-void QDropbox2Usage::init()
+void QDropbox2Usage::init(const QJsonObject& jsonData)
 {
-    if(!isValid())
-    {
-        valid = false;
-        return;
-    }
-
-    if(!hasKey("used") ||
-       !hasKey("allocation"))
+    if(jsonData.isEmpty() ||
+       !jsonData.contains("used") ||
+       !jsonData.contains("allocation"))
     {
 #ifdef QTDROPBOX_DEBUG
         qDebug() << "json invalid 1" << endl;
 #endif
-        valid = false;
-        return;
+        _valid = false;
     }
+    else
+    {
+        _used           = jsonData.value("used").toString().toULongLong();
 
-    _used           = getUInt64("used", true);
-    QDropbox2Json* allocation = getJson("allocation");
-    _allocated      = allocation->getUInt64("allocated", true);
-    _allocationType = allocation->getString(".tag");
+        QJsonObject allocation = jsonData.value("allocation").toObject();
+        _allocated      = allocation.value("allocated").toString().toULongLong();
+        _allocationType = allocation.value(".tag").toString();
 
-    valid = true;
+        _valid = true;
+    }
 }
 
 quint64 QDropbox2Usage::used() const

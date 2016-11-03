@@ -160,15 +160,16 @@ void QDropbox2::slot_networkRequestFinished(QNetworkReply *reply)
 
             if(lastErrorCode == QDROPBOX_V2_ERROR)
             {
-                QDropbox2Json json;
-                json.parseString(lastResponse);
-                cachedJson = json;
-                if(json.isValid())
+                QJsonParseError jsonError;
+                QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+                if(jsonError.error == QJsonParseError::NoError)
                 {
-                    if(json.hasKey("user_message"))
-                        lastErrorMessage = json.getString("user_message");
-                    else if(json.hasKey("error_summary"))
-                        lastErrorMessage = json.getString("error_summary");
+                    cachedJson = json;
+                    QJsonObject object = json.object();
+                    if(object.contains("user_message"))
+                        lastErrorMessage = object.value("user_message").toString();
+                    else if(object.contains("error_summary"))
+                        lastErrorMessage = object.value("error_summary").toString();
                 }
             }
 
@@ -305,25 +306,31 @@ bool QDropbox2::tokenFromKeyAndSecret()     // synchronous
     {
         startEventLoop();
 
-        QDropbox2Json json;
-        json.parseString(lastResponse);
-        cachedJson = json;
-
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
         result = (lastErrorCode == 0 && lastResponse.length());
         if(result)
         {
-            if(json.isValid())
+            if(jsonError.error == QJsonParseError::NoError)
             {
-                if(json.hasKey("oauth2_token"))
-                    accessToken_ = json.getString("oauth2_token");
+                cachedJson = json;
+                QJsonObject object = json.object();
+                if(object.contains("oauth2_token"))
+                    accessToken_ = object.value("oauth2_token").toString();
             }
         }
         else if(lastErrorCode != 0)
         {
+            lastErrorMessage.clear();
             lastErrorCode = (int)QDropbox2::UnknownAuthMethod;
-            if(json.isValid())
-                lastErrorMessage = json.getString("error_summary");
-            else
+            if(jsonError.error == QJsonParseError::NoError)
+            {
+                cachedJson = json;
+                QJsonObject object = json.object();
+                if(object.contains("error_summary"))
+                    lastErrorMessage = object.value("error_summary").toString();
+            }
+            if(lastErrorMessage.isEmpty())
                 lastErrorMessage = "An error occurred using the OAuth v1 interface.";
             emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
         }
@@ -372,7 +379,7 @@ bool QDropbox2::revokeAccessToken()     // synchronous
     else
     {
         lastErrorCode = (int)QDropbox2::APIError;
-        lastErrorMessage = "An error occurred creating the nework request.";
+        lastErrorMessage = "An error occurred creating the network request.";
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
     }
 
@@ -411,8 +418,23 @@ bool QDropbox2::userInfo(QDropbox2User& info)   // synchronous
         result = (lastErrorCode == 0 && lastResponse.length());
         if(result)
         {
-            QDropbox2User a(lastResponse, this);
-            info = a;
+            QJsonParseError jsonError;
+            QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+            if(jsonError.error == QJsonParseError::NoError)
+            {
+                cachedJson = json;
+                QJsonObject object = json.object();
+                QDropbox2User a(object, this);
+                info = a;
+            }
+            else
+            {
+                lastErrorCode = (int)QDropbox2::APIError;
+                lastErrorMessage  = "Dropbox API did not send correct answer for account information.";
+                emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
+
+                result = false;
+            }
         }
     }
 
@@ -460,10 +482,9 @@ void QDropbox2::userInfoCallback(QNetworkReply* /*reply*/, CallbackPtr /*data*/)
     qDebug() << "== user info ==" << lastResponse << "== user info end ==";
 #endif
 
-    QDropbox2Json json;
-    json.parseString(lastResponse);
-    cachedJson = json;
-    if(!json.isValid())
+    QJsonParseError jsonError;
+    QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+    if(jsonError.error != QJsonParseError::NoError)
     {
         lastErrorCode = (int)QDropbox2::APIError;
         lastErrorMessage  = "Dropbox API did not send correct answer for account information.";
@@ -474,7 +495,8 @@ void QDropbox2::userInfoCallback(QNetworkReply* /*reply*/, CallbackPtr /*data*/)
     }
     else
     {
-        QDropbox2User info(lastResponse);
+        cachedJson = json;
+        QDropbox2User info(json.object(), this);
         emit signal_userInfoReceived(info);
     }
 }
@@ -495,8 +517,23 @@ bool QDropbox2::usageInfo(QDropbox2Usage& info)     // synchronous
         result = (lastErrorCode == 0 && lastResponse.length());
         if(result)
         {
-            QDropbox2Usage a(lastResponse, this);
-            info = a;
+            QJsonParseError jsonError;
+            QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+            if(jsonError.error == QJsonParseError::NoError)
+            {
+                cachedJson = json;
+                QJsonObject object = json.object();
+                QDropbox2Usage a(object, this);
+                info = a;
+            }
+            else
+            {
+                lastErrorCode = (int)QDropbox2::APIError;
+                lastErrorMessage  = "Dropbox API did not send correct answer for account information.";
+                emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
+
+                result = false;
+            }
         }
     }
 
@@ -544,10 +581,9 @@ void QDropbox2::usageInfoCallback(QNetworkReply* /*reply*/, CallbackPtr /*data*/
     qDebug() << "== usage info ==" << lastResponse << "== usage info end ==";
 #endif
 
-    QDropbox2Json json;
-    json.parseString(lastResponse);
-    cachedJson = json;
-    if(!json.isValid())
+    QJsonParseError jsonError;
+    QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+    if(jsonError.error != QJsonParseError::NoError)
     {
         lastErrorCode = (int)QDropbox2::APIError;
         lastErrorMessage  = "Dropbox API did not send correct answer for account information.";
@@ -558,8 +594,21 @@ void QDropbox2::usageInfoCallback(QNetworkReply* /*reply*/, CallbackPtr /*data*/
     }
     else
     {
-        QDropbox2Usage info(lastResponse);
-        emit signal_usageInfoReceived(info);
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
+        {
+            cachedJson = json;
+            QJsonObject object = json.object();
+            QDropbox2Usage usage(object, this);
+            emit signal_usageInfoReceived(usage);
+        }
+        else
+        {
+            lastErrorCode = (int)QDropbox2::APIError;
+            lastErrorMessage  = "Dropbox API did not send correct answer for account information.";
+            emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
+        }
     }
 }
 

@@ -1,6 +1,5 @@
 SOURCES += \
     $$PWD/src/qdropbox2.cpp \
-    $$PWD/src/qdropbox2json.cpp \
     $$PWD/src/qdropbox2account.cpp \
     $$PWD/src/qdropbox2file.cpp \
     $$PWD/src/qdropbox2folder.cpp \
@@ -10,7 +9,6 @@ HEADERS += \
     $$PWD/src/qdropbox2global.h \
     $$PWD/src/qdropbox2common.h \
     $$PWD/src/qdropbox2.h \
-    $$PWD/src/qdropbox2json.h \
     $$PWD/src/qdropbox2account.h \
     $$PWD/src/qdropbox2file.h \
     $$PWD/src/qdropbox2folder.h \

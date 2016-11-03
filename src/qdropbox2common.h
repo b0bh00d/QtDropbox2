@@ -7,10 +7,14 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QUrl>
+#include <QUrlQuery>
 #include <QEvent>
+#include <QEventLoop>
+
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
+#include <QJsonArray>
+#include <QJsonParseError>
 
 #include "qdropbox2global.h"
-#include "qdropbox2json.h"
-#include "qdropbox2.h"
-#include "qdropbox2entity.h"
-#include "qdropbox2entityinfo.h"

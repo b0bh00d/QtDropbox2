@@ -35,18 +35,16 @@ QDROPBOX2_APP_SECRET values.
 
 ## Enabling Tests
 You need to define certain values to enable certain tests.  For example, in
-order to enable the QDropbox2Json tests, you will need to define
-QDROPBOX2_JSON_TESTS.  The QDropbox2Json tests do not access Dropbox and
-therefore require no authorizing data.
+order to enable the QDropbox2 account tests, you will need to define
+QDROPBOX2_ACCOUNT_TESTS.
 
-However, for testing actual interaction with a Dropbox account, you will need
-to define one or both of QDROPBOX2_ACCOUNT_TESTS, QDROPBOX2_FOLDER_TESTS or
-QDROPBOX2_FILE_TESTS.  Enabling any of these will require the presence of an
+All of the test subsystems require interaction with a Dropbox account, so you
+will need to define one or more of QDROPBOX2_ACCOUNT_TESTS, QDROPBOX2_FOLDER_TESTS
+or QDROPBOX2_FILE_TESTS.  Enabling any of these will require the presence of an
 authorizing access token (see the previous section).
 
 Example:
 
-    #define QDROPBOX2_JSON_TESTS
     #define QDROPBOX2_ACCOUNT_TESTS
     #define QDROPBOX2_FOLDER_TESTS
     #define QDROPBOX2_FILE_TESTS

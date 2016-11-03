@@ -2,6 +2,10 @@
 
 #include "qdropbox2common.h"
 
+#include "qdropbox2.h"
+#include "qdropbox2entity.h"
+#include "qdropbox2entityinfo.h"
+
 //! Allows access to folders stored on Dropbox
 
 class QDROPBOXSHARED_EXPORT QDropbox2Folder : public QObject, public IQDropbox2Entity

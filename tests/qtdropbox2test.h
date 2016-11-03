@@ -22,28 +22,6 @@ private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
 
-#if defined(QDROPBOX2_JSON_TESTS)
-    // QDropbox2Json
-    // (These are the unaltered JSON tests from the original project)
-    void jsonCase1();
-    void jsonCase2();
-    void jsonCase3();
-    void jsonCase4();
-    void jsonCase5();
-    void jsonCase6();
-    void jsonCase7();
-    void jsonCase8();
-    void jsonCase9();
-    void jsonCase10();
-    void jsonCase11();
-    void jsonCase12();
-    void jsonCase13();
-    void jsonCase14();
-    void jsonCase15();
-    void jsonCase16();  // 64-bit signed int (QDropbox2)
-    void jsonCase17();  // 64-bit unsigned int (QDropbox2)
-#endif
-
 #if defined(QDROPBOX2_ACCOUNT_TESTS)
     void accountUser();
     void accountUsage();

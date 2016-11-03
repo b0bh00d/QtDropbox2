@@ -2,7 +2,8 @@
 
 #include <QObject>
 #include <QUrl>
-#include "qdropbox2json.h"
+
+#include "qdropbox2common.h"
 
 //! Stores information about a user account
 /*!
@@ -17,7 +18,7 @@
 
   See https://www.dropbox.com/developers/documentation/http/documentation#users-get_current_account for details.
  */
-class QDROPBOXSHARED_EXPORT QDropbox2User : public QDropbox2Json
+class QDROPBOXSHARED_EXPORT QDropbox2User : public QObject
 {
     Q_OBJECT
 public:
@@ -36,7 +37,7 @@ public:
       \param jsonString JSON data in string representation
       \param parent Parent QObject.
      */
-    QDropbox2User(QString jsonString, QObject *parent = 0);
+    QDropbox2User(const QJsonObject& jsonData, QObject *parent = 0);
 
     /*!
       Use this constructor to create a copy of an other QDropboxAccount.
@@ -44,6 +45,11 @@ public:
       \param other Original QDropboxAccount
      */
     QDropbox2User(const QDropbox2User& other);
+
+    /*!
+      Indicates that the class instance contains valid data.
+     */
+    bool isValid() const;
 
     /*!
       Returns the referral link for the account.  This can be used to gain
@@ -128,6 +134,8 @@ public:
     void copyFrom(const QDropbox2User& a);
 
 private:  
+    bool    _valid;
+
     QUrl    _referralLink;
     QString _id;
     QString _displayName;
@@ -140,12 +148,7 @@ private:
     bool    _isDisabled;
     QUrl    _profilePhoto;
 
-    // these come from a separate call to get_space_usage
-    //quint64 _quotaShared;
-    //quint64 _quota;
-    //quint64 _quotaNormal;
-
-    void init();
+    void    init(const QJsonObject& jsonData);
 };
 
 //! Stores information about account usage
@@ -161,7 +164,7 @@ private:
 
   See https://www.dropbox.com/developers/documentation/http/documentation#users-get_space_usage for details.
  */
-class QDROPBOXSHARED_EXPORT QDropbox2Usage : public QDropbox2Json
+class QDROPBOXSHARED_EXPORT QDropbox2Usage : public QObject
 {
     Q_OBJECT
 public:
@@ -180,7 +183,7 @@ public:
       \param jsonString JSON data in string representation
       \param parent Parent QObject.
      */
-    QDropbox2Usage(QString jsonString, QObject *parent = 0);
+    QDropbox2Usage(const QJsonObject& jsonData, QObject *parent = 0);
 
     /*!
       Use this constructor to create a copy of an other QDropboxAccount.
@@ -188,6 +191,11 @@ public:
       \param other Original QDropboxAccount
      */
     QDropbox2Usage(const QDropbox2Usage& other);
+
+    /*!
+      Indicates that the class instance contains valid data.
+     */
+    bool isValid() const;
 
     /*!
       Returns the number of bytes currently in use on the account.
@@ -217,9 +225,11 @@ public:
     void copyFrom(const QDropbox2Usage& a);
 
 private:  
+    bool    _valid;
+
     quint64 _used;
     quint64 _allocated;
     QString _allocationType;
 
-    void init();
+    void    init(const QJsonObject& jsonData);
 };

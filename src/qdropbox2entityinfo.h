@@ -9,7 +9,7 @@
 #include <QDebug>
 #endif
 
-#include "qdropbox2json.h"
+#include "qdropbox2common.h"
 
 //! Provides information and metadata about an entry in the Dropbox account
 /*!
@@ -22,7 +22,7 @@
   error occured while obtaining the metadata the functon isValid() will return
   <i>false</i>.
  */
-class QDROPBOXSHARED_EXPORT QDropbox2EntityInfo : public QDropbox2Json
+class QDROPBOXSHARED_EXPORT QDropbox2EntityInfo : public QObject
 {
     Q_OBJECT
 
@@ -41,7 +41,7 @@ public:
       \param jsonStr metadata JSON in string representation
       \param parent pointer to the parent QObject
     */
-    QDropbox2EntityInfo(QString jsonStr, QObject *parent = 0);
+    QDropbox2EntityInfo(const QJsonObject& jsonData, QObject *parent = 0);
 
     /*!
        Creates a copy of an other QDropbox2EntityInfo instance.
@@ -54,7 +54,7 @@ public:
       Default destructor. Takes care of cleaning up when the object is destroyed.
     */
     ~QDropbox2EntityInfo();
-    
+
     /*!
       Copies the values from an other QDropbox2EntityInfo instance to the
       current instance.
@@ -126,8 +126,8 @@ public:
     QString   revisionHash()    const   { return _revisionHash; }
 
 private:
-    void dataFromJson();
-    void init();
+    void        init(const QJsonObject& jsonData = QJsonObject());
+    QDateTime   getTimestamp(QString value);
 
     QString     _id;
     QDateTime   _clientModified;

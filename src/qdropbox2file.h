@@ -2,6 +2,10 @@
 
 #include "qdropbox2common.h"
 
+#include "qdropbox2.h"
+#include "qdropbox2entity.h"
+#include "qdropbox2entityinfo.h"
+
 //! Allows access to files stored on Dropbox
 /*!
   QDropbox2File allows you to access files that are stored on Dropbox. You can

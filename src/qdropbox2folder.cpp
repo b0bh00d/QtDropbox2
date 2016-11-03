@@ -192,9 +192,20 @@ bool QDropbox2Folder::getLatestCursor(QString& cursor, bool include_deleted)
     result = (lastErrorCode == 0);
     if(result)
     {
-        QDropbox2Json json;
-        json.parseString(lastResponse);
-        cursor = json.getString("cursor");
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
+        {
+            QJsonObject object = json.object();
+            if(object.contains("cursor"))
+                cursor = object.value("cursor").toString();
+        }
+        else
+        {
+            lastErrorCode = (int)QDropbox2::APIError;
+            lastErrorMessage = "Dropbox API did not send correct answer for cursor information.";
+            emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
+        }
     }
     return result;
 }
@@ -211,18 +222,22 @@ bool QDropbox2Folder::hasChanged(ContentsList& changes)
     if(!getContents(reply, latestCursor, true))
         return false;
 
-    QDropbox2Json json;
-    json.parseString(lastResponse);
-    latestCursor = json.getString("cursor");
-    if(!json.hasKey("entries"))
-        return false;
+    QJsonParseError jsonError;
+    QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+    if(jsonError.error == QJsonParseError::NoError)
+    {
+        QJsonObject object = json.object();
+        latestCursor = object.value("cursor").toString();
+        if(!object.contains("entries"))
+            return false;
 
-    QStringList data = json.getArray("entries");
-    if(!data.count())
-        return false;
+        QJsonArray data = object.value("entries").toArray();
+        if(!data.count())
+            return false;
 
-    foreach(const QString& entry_str, data)
-        changes.append(QDropbox2EntityInfo(entry_str));
+        foreach(const QJsonValue& entry, data)
+            changes.append(QDropbox2EntityInfo(entry.toObject()));
+    }
 
     return true;
 }
@@ -246,28 +261,32 @@ bool QDropbox2Folder::hasChanged()
 
 void QDropbox2Folder::hasChangedCallback(QNetworkReply* /*reply*/, CallbackPtr /*reply_data*/)
 {
-    QDropbox2Json json;
-    json.parseString(lastResponse);
-    latestCursor = json.getString("cursor");
-    if(!json.hasKey("entries"))
+    QJsonParseError jsonError;
+    QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+    if(jsonError.error == QJsonParseError::NoError)
     {
-#ifdef QTDROPBOX_DEBUG
-        qDebug() << "QDropbox2Folder::hasChangedCallback error: " << lastErrorCode << lastErrorMessage << endl;
-#endif
-        emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
-    }
-    else
-    {
-        QDropbox2Folder::ContentsList changes;
-
-        QStringList data = json.getArray("entries");
-        if(data.count())
+        QJsonObject object = json.object();
+        latestCursor = object.value("cursor").toString();
+        if(!object.contains("entries"))
         {
-            foreach(const QString& entry_str, data)
-                changes.append(QDropbox2EntityInfo(entry_str));
+#ifdef QTDROPBOX_DEBUG
+            qDebug() << "QDropbox2Folder::hasChangedCallback error: " << lastErrorCode << lastErrorMessage << endl;
+#endif
+            emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
         }
+        else
+        {
+            QDropbox2Folder::ContentsList changes;
 
-        emit signal_hasChangedResults(changes);
+            QJsonArray data = object.value("entries").toArray();
+            if(data.count())
+            {
+                foreach(const QJsonValue& entry, data)
+                    changes.append(QDropbox2EntityInfo(entry.toObject()));
+            }
+
+            emit signal_hasChangedResults(changes);
+        }
     }
 }
 
@@ -282,9 +301,13 @@ bool QDropbox2Folder::waitForChanged(int timeout)
     {
         if(requestLongpoll(timeout))
         {
-            QDropbox2Json json;
-            json.parseString(lastResponse);
-            result = json.getBool("changes");
+            QJsonParseError jsonError;
+            QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+            if(jsonError.error == QJsonParseError::NoError)
+            {
+                QJsonObject object = json.object();
+                result = object.value("changes").toBool();
+            }
             break;
         }
 
@@ -391,8 +414,14 @@ void QDropbox2Folder::obtainMetadata()
         }
         else
         {
-            _metadata = new QDropbox2EntityInfo(lastResponse);
-            if(!_metadata->isValid())
+            QJsonParseError jsonError;
+            QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+            if(jsonError.error == QJsonParseError::NoError)
+            {
+                QJsonObject object = json.object();
+                _metadata = new QDropbox2EntityInfo(object);
+            }
+            else
             {
                 lastErrorCode = QDropbox2::APIError;
                 lastErrorMessage = "Dropbox API did not send correct answer for file/directory metadata.";
@@ -631,27 +660,38 @@ bool QDropbox2Folder::contents(QDropbox2Folder::ContentsList& contents, bool inc
             break;
         }
 
-        QDropbox2Json json;
-        json.parseString(lastResponse);
-        if(json.hasKey("entries"))
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
         {
-            QStringList data = json.getArray("entries");
-            foreach(const QString& entry_str, data)
+            QJsonObject object = json.object();
+            if(object.contains("entries"))
             {
-                if(!include_folders)
+                QJsonArray data = object.value("entries").toArray();
+                foreach(const QJsonValue& entry, data)
                 {
-                    QDropbox2Json entry;
-                    entry.parseString(entry_str);
-                    if(!entry.getString(".tag").compare("folder"))
-                        continue;
+                    QJsonObject obj = entry.toObject();
+                    if(!include_folders)
+                    {
+                        if(!obj.contains(".tag") || !obj.value(".tag").toString().compare("folder"))
+                            continue;
+                    }
+
+                    contents.append(QDropbox2EntityInfo(entry.toObject()));
                 }
-
-                contents.append(QDropbox2EntityInfo(entry_str));
             }
-        }
 
-        latestCursor = json.getString("cursor");
-        has_more = json.getBool("has_more");
+            latestCursor = object.value("cursor").toString();
+            has_more = object.value("has_more").toBool();
+        }
+        else
+        {
+            has_more = false;
+
+            lastErrorCode = QDropbox2::APIError;
+            lastErrorMessage = "Dropbox API did not send correct answer for file/directory metadata.";
+            emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
+        }
     } while(has_more);
 
     return result;
@@ -690,30 +730,33 @@ void QDropbox2Folder::contentsCallback(QNetworkReply* /*reply*/, CallbackPtr rep
         ContentsList contents_results;
         ContentsData* contents_data = reinterpret_cast<ContentsData*>(reply_data.data());
 
-        QDropbox2Json json;
-        json.parseString(lastResponse);
-        if(json.hasKey("entries"))
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
         {
-            QStringList data = json.getArray("entries");
-            foreach(const QString& entry_str, data)
+            QJsonObject object = json.object();
+            if(object.contains("entries"))
             {
-                if(!contents_data->include_folders)
+                QJsonArray data = object.value("entries").toArray();
+                foreach(const QJsonValue& entry, data)
                 {
-                    QDropbox2Json entry;
-                    entry.parseString(entry_str);
-                    if(!entry.getString(".tag").compare("folder"))
-                        continue;
+                    QJsonObject obj = entry.toObject();
+                    if(!contents_data->include_folders)
+                    {
+                        if(!obj.contains(".tag") || !obj.value(".tag").toString().compare("folder"))
+                            continue;
+                    }
+
+                    contents_results.append(QDropbox2EntityInfo(entry.toObject()));
                 }
-
-                contents_results.append(QDropbox2EntityInfo(entry_str));
             }
+
+            latestCursor = object.value("cursor").toString();
+            // TODO: figure out how to handle 'has_more' asynchronously
+            //has_more = json.getBool("has_more");
+
+            emit signal_contentsResults(contents_results);
         }
-
-        latestCursor = json.getString("cursor");
-        // TODO: figure out how to handle 'has_more' asynchronously
-        //has_more = json.getBool("has_more");
-
-        emit signal_contentsResults(contents_results);
     }
 }
 
@@ -790,22 +833,33 @@ bool QDropbox2Folder::search(QDropbox2Folder::ContentsList& contents, const QStr
             break;
         }
 
-        QDropbox2Json json;
-        json.parseString(lastResponse);
-        if(json.hasKey("matches"))
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
         {
-            QStringList data = json.getArray("matches");
-            foreach(const QString& entry_str, data)
+            QJsonObject object = json.object();
+            if(object.contains("matches"))
             {
-                QDropbox2Json entry;
-                entry.parseString(entry_str);
-                if(entry.hasKey("metadata"))
-                    contents.append(QDropbox2EntityInfo(entry.getJson("metadata")->strContent()));
+                QJsonArray data = object.value("matches").toArray();
+                foreach(const QJsonValue& entry, data)
+                {
+                    QJsonObject obj = entry.toObject();
+                    if(obj.contains("metadata"))
+                        contents.append(QDropbox2EntityInfo(entry.toObject()));
+                }
             }
-        }
 
-        start = json.getInt("start");
-        has_more = json.getBool("more");
+            start = object.value("start").toInt();
+            has_more = object.value("more").toBool();
+        }
+        else
+        {
+            has_more = false;
+
+            lastErrorCode = QDropbox2::APIError;
+            lastErrorMessage = "Dropbox API did not send correct answer for search results.";
+            emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
+        }
     } while(has_more);
 
     return result;
@@ -839,17 +893,20 @@ void QDropbox2Folder::searchCallback(QNetworkReply* /*reply*/, CallbackPtr /*rep
     {
         ContentsList search_results;
 
-        QDropbox2Json json;
-        json.parseString(lastResponse);
-        if(json.hasKey("matches"))
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
         {
-            QStringList data = json.getArray("matches");
-            foreach(const QString& entry_str, data)
+            QJsonObject object = json.object();
+            if(object.contains("matches"))
             {
-                QDropbox2Json entry;
-                entry.parseString(entry_str);
-                if(entry.hasKey("metadata"))
-                    search_results.append(QDropbox2EntityInfo(entry.getJson("metadata")->strContent()));
+                QJsonArray data = object.value("matches").toArray();
+                foreach(const QJsonValue& entry, data)
+                {
+                    QJsonObject obj = entry.toObject();
+                    if(obj.contains("metadata"))
+                        search_results.append(QDropbox2EntityInfo(entry.toObject()));
+                }
             }
         }
 

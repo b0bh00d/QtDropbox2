@@ -351,31 +351,33 @@ void QDropbox2File::resultGetFile(QNetworkReply *reply, CallbackPtr /*reply_data
 
     QByteArray response = reply->readAll();
     QString resp_str;
-    QDropbox2Json json;
 
-#ifdef QTDROPBOX_DEBUG
-    //resp_str = QString(response.toHex());
-    //qDebug() << "QDropbox2File::replyFileContent response = " << resp_str << endl;
-
-#endif
+//#ifdef QTDROPBOX_DEBUG
+//    resp_str = QString(response.toHex());
+//    qDebug() << "QDropbox2File::replyFileContent response = " << resp_str << endl;
+//
+//#endif
 
     if(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == QDROPBOX_V2_ERROR)
     {
         resp_str = QString(response);
-        json.parseString(response.trimmed());
+        lastErrorMessage = "";
+
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(resp_str.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
+        {
+            QJsonObject object = json.object();
+            if(object.contains("user_message"))
+                lastErrorMessage = object.value("user_message").toString();
+            else if(object.contains("error_summary"))
+                lastErrorMessage = object.value("error_summary").toString();
+        }
+
         lastErrorCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 #ifdef QTDROPBOX_DEBUG
         qDebug() << "QDropbox2File::replyFileContent jason.valid = " << json.isValid() << endl;
 #endif
-        if(json.isValid())
-        {
-            if(json.hasKey("user_message"))
-                lastErrorMessage = json.getString("user_message");
-            else if(json.hasKey("error_summary"))
-                lastErrorMessage = json.getString("error_summary");
-        }
-        else
-            lastErrorMessage = "";
 
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
     }
@@ -461,7 +463,6 @@ void QDropbox2File::resultPutFile(QNetworkReply *reply, CallbackPtr /*reply_data
 
     QByteArray response = reply->readAll();
     QString resp_str;
-    QDropbox2Json json;
 
 #ifdef QTDROPBOX_DEBUG
     resp_str = response;
@@ -471,30 +472,39 @@ void QDropbox2File::resultPutFile(QNetworkReply *reply, CallbackPtr /*reply_data
     if(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == QDROPBOX_V2_ERROR)
     {
         resp_str = QString(response);
-        json.parseString(response.trimmed());
+        lastErrorMessage = "";
+
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(resp_str.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
+        {
+            QJsonObject object = json.object();
+            if(object.contains("user_message"))
+                lastErrorMessage = object.value("user_message").toString();
+            else if(object.contains("error_summary"))
+                lastErrorMessage = object.value("error_summary").toString();
+        }
+
         lastErrorCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 #ifdef QTDROPBOX_DEBUG
         qDebug() << "QDropbox2File::replyFileWrite jason.valid = " << json.isValid() << endl;
 #endif
-        if(json.isValid())
-        {
-            if(json.hasKey("user_message"))
-                lastErrorMessage = json.getString("user_message");
-            else if(json.hasKey("error_summary"))
-                lastErrorMessage = json.getString("error_summary");
-        }
-        else
-            lastErrorMessage = "";
 
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
     }
     else
     {
-        delete _metadata;
+        if(_metadata)
+            _metadata->deleteLater();
+        _metadata = nullptr;
 
-        _metadata = new QDropbox2EntityInfo{QString{response}.trimmed(), this};
-        if (!_metadata->isValid())
-            _metadata->clear();
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(resp_str.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
+        {
+            QJsonObject object = json.object();
+            _metadata = new QDropbox2EntityInfo(object, this);
+        }
 
         emit bytesWritten(_buffer->size());
     }
@@ -526,7 +536,7 @@ QDropbox2EntityInfo QDropbox2File::metadata()
 {
     obtainMetadata();
 
-    if(_metadata && _metadata->isValid())
+    if(_metadata)
         lastHash = _metadata->revisionHash();
 
     return _metadata ? *_metadata : QDropbox2EntityInfo();
@@ -544,7 +554,7 @@ void QDropbox2File::obtainMetadata()
         lastErrorCode = QDropbox2::APIError;
         lastErrorMessage = "Metadata for the root folder is unsupported.";
 #ifdef QTDROPBOX_DEBUG
-        qDebug() << "error: " << errorText << endl;
+        qDebug() << "error: " << lastErrorMessage << endl;
 #endif
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
     }
@@ -581,13 +591,19 @@ void QDropbox2File::obtainMetadata()
         }
         else
         {
-            _metadata = new QDropbox2EntityInfo(lastResponse);
-            if(!_metadata->isValid())
+            QJsonParseError jsonError;
+            QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+            if(jsonError.error == QJsonParseError::NoError)
+            {
+                QJsonObject object = json.object();
+                _metadata = new QDropbox2EntityInfo(object);
+            }
+            else
             {
                 lastErrorCode = QDropbox2::APIError;
                 lastErrorMessage = "Dropbox API did not send correct answer for file/directory metadata.";
 #ifdef QTDROPBOX_DEBUG
-                qDebug() << "error: " << errorText << endl;
+                qDebug() << "error: " << lastErrorMessage << endl;
 #endif
                 emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
             }
@@ -600,20 +616,26 @@ bool QDropbox2File::hasChanged()
     if(lastHash.isEmpty())
     {
         obtainMetadata();
-        if(_metadata && _metadata->isValid())
+        if(_metadata)
             lastHash = _metadata->revisionHash();
         return false;
     }
 
+    bool result = false;
+
     // get updated information
     obtainMetadata();
 
+    if(_metadata)
+    {
 #ifdef QTDROPBOX_DEBUG
-    qDebug() << "QDropbox2File::hasChanged() local  revision hash = " << lastHash << endl;
-    qDebug() << "QDropbox2File::hasChanged() remote revision hash = " << _metadata->revisionHash() << endl;
+        qDebug() << "QDropbox2File::hasChanged() local  revision hash = " << lastHash << endl;
+        qDebug() << "QDropbox2File::hasChanged() remote revision hash = " << _metadata->revisionHash() << endl;
 #endif
-    bool result = lastHash.compare(_metadata->revisionHash()) != 0;
-    lastHash = _metadata->revisionHash();
+        result = lastHash.compare(_metadata->revisionHash()) != 0;
+        lastHash = _metadata->revisionHash();
+    }
+
     return result;
 }
 
@@ -650,16 +672,34 @@ bool QDropbox2File::revisions(QDropbox2File::RevisionsList& revisions, quint64 m
     {
         result = true;
 
-        QDropbox2Json json;
-        json.parseString(lastResponse);
-        if(json.hasKey("entries"))
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
         {
-            QStringList data = json.getArray("entries");
-            if(data.count())
+            QJsonObject object = json.object();
+            if(object.contains("entries"))
             {
-                foreach(const QString& entry_str, data)
-                    revisions.append(QDropbox2EntityInfo(entry_str));
+                QJsonArray data = object.value("entries").toArray();
+                if(data.count())
+                {
+                    foreach(const QJsonValue& entry, data)
+                    {
+                        QJsonObject obj = entry.toObject();
+                        revisions.append(QDropbox2EntityInfo(entry.toObject()));
+                    }
+                }
             }
+        }
+        else
+        {
+            result = false;
+
+            lastErrorCode = QDropbox2::APIError;
+            lastErrorMessage = "Dropbox API did not send correct answer for revision data.";
+#ifdef QTDROPBOX_DEBUG
+            qDebug() << "error: " << lastErrorMessage << endl;
+#endif
+            emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
         }
     }
 
@@ -695,19 +735,32 @@ void QDropbox2File::revisionsCallback(QNetworkReply* /*reply*/, CallbackPtr /*re
     {
         RevisionsList revisions_results;
 
-        QDropbox2Json json;
-        json.parseString(lastResponse);
-        if(json.hasKey("entries"))
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
         {
-            QStringList data = json.getArray("entries");
-            if(data.count())
+            QJsonObject object = json.object();
+            if(object.contains("entries"))
             {
-                foreach(const QString& entry_str, data)
-                    revisions_results.append(QDropbox2EntityInfo(entry_str));
+                QJsonArray data = object.value("entries").toArray();
+                if(data.count())
+                {
+                    foreach(const QJsonValue& entry, data)
+                        revisions_results.append(QDropbox2EntityInfo(entry.toObject()));
+                }
             }
-        }
 
-        emit signal_revisionsResult(revisions_results);
+            emit signal_revisionsResult(revisions_results);
+        }
+        else
+        {
+            lastErrorCode = QDropbox2::APIError;
+            lastErrorMessage = "Dropbox API did not send correct answer for revision data.";
+#ifdef QTDROPBOX_DEBUG
+            qDebug() << "error: " << lastErrorMessage << endl;
+#endif
+            emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
+        }
     }
 }
 
@@ -967,9 +1020,23 @@ QUrl QDropbox2File::requestStreamingLink()
     }
     else
     {
-        QDropbox2Json json;
-        json.parseString(lastResponse);
-        result.setUrl(json.getString("link"));
+        QJsonParseError jsonError;
+        QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
+        if(jsonError.error == QJsonParseError::NoError)
+        {
+            QJsonObject object = json.object();
+            if(object.contains("link"))
+                result.setUrl(object.value("link").toString());
+        }
+        else
+        {
+            lastErrorCode = QDropbox2::APIError;
+            lastErrorMessage = "Dropbox API did not send correct answer for temporary link data.";
+#ifdef QTDROPBOX_DEBUG
+            qDebug() << "error: " << lastErrorMessage << endl;
+#endif
+            emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
+        }
     }
 
     return result;

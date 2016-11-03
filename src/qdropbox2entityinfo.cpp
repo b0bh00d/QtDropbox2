@@ -3,21 +3,20 @@
 
 #include "qdropbox2entityinfo.h"
 
-QDropbox2EntityInfo::QDropbox2EntityInfo(QObject *parent) :
-    QDropbox2Json(parent)
+QDropbox2EntityInfo::QDropbox2EntityInfo(QObject *parent)
+    : QObject(parent)
 {
   init();
 }
 
-QDropbox2EntityInfo::QDropbox2EntityInfo(QString jsonStr, QObject *parent) :
-    QDropbox2Json(jsonStr, parent)
+QDropbox2EntityInfo::QDropbox2EntityInfo(const QJsonObject& jsonData, QObject *parent)
+    : QObject(parent)
 {
-    init();
-    dataFromJson();
+    init(jsonData);
 }
 
-QDropbox2EntityInfo::QDropbox2EntityInfo(const QDropbox2EntityInfo &other) :
-    QDropbox2Json(0)
+QDropbox2EntityInfo::QDropbox2EntityInfo(const QDropbox2EntityInfo &other)
+    : QObject(0)
 {
     init();
     copyFrom(other);
@@ -29,9 +28,19 @@ QDropbox2EntityInfo::~QDropbox2EntityInfo()
 
 void QDropbox2EntityInfo::copyFrom(const QDropbox2EntityInfo &other)
 {
-    parseString(other.strContent());
-    dataFromJson();
     setParent(other.parent());
+
+    _id             = other._id;
+    _size           = other._size;
+    _bytes          = other._bytes;
+    _serverModified = other._serverModified;
+    _clientModified = other._clientModified;
+    _path           = other._path;
+    _filename       = other._filename;
+    _revisionHash   = other._revisionHash;
+    _isDir          = other._isDir;
+    _isShared       = other._isShared;
+    _isDeleted      = other._isDeleted;
 }
 
 QDropbox2EntityInfo &QDropbox2EntityInfo::operator=(const QDropbox2EntityInfo &other)
@@ -40,38 +49,49 @@ QDropbox2EntityInfo &QDropbox2EntityInfo::operator=(const QDropbox2EntityInfo &o
     return *this;
 }
 
-void QDropbox2EntityInfo::dataFromJson()
+void QDropbox2EntityInfo::init(const QJsonObject& jsonData)
 {
-    if(isValid())
+    if(!jsonData.isEmpty())
     {
-        _id             = getString("id");
+        _id             = jsonData.value("id").toString();
         _clientModified = getTimestamp("client_modified");
         _serverModified = getTimestamp("server_modified");
-        _revisionHash   = getString("rev");
-        _bytes          = getInt("size");
+        _revisionHash   = jsonData.value("rev").toString();
+        _bytes          = jsonData.value("size").toInt();
         _size           = QString::number(_bytes);
-        _path           = getString("path_display");
-        _isShared       = hasKey("sharing_info");
-        _isDir          = getString(".tag").compare("folder") == 0;
-        _isDeleted      = getString(".tag").compare("deleted") == 0;
+        _path           = jsonData.value("path_display").toString();
+        _isShared       = jsonData.contains("sharing_info");
+        _isDir          = jsonData.value(".tag").toString().compare("folder") == 0;
+        _isDeleted      = jsonData.value(".tag").toString().compare("deleted") == 0;
 
         QFileInfo info(_path);
         _filename = info.fileName();
     }
+    else
+    {
+        _id             = "";
+        _size           = "";
+        _bytes          = 0;
+        _serverModified = QDateTime::currentDateTime();
+        _clientModified = QDateTime::currentDateTime();
+        _path           = "";
+        _filename       = "";
+        _revisionHash   = "";
+        _isDir          = false;
+        _isShared       = false;
+        _isDeleted      = false;
+    }
 }
 
-void QDropbox2EntityInfo::init()
+QDateTime QDropbox2EntityInfo::getTimestamp(QString value)
 {
-    _size           = "";
-    _bytes          = 0;
-    _serverModified = QDateTime::currentDateTime();
-    _clientModified = QDateTime::currentDateTime();
-    _path           = "";
-    _filename       = "";
-    _revisionHash   = "";
-    _isDir          = false;
-    _isShared       = false;
-    _isDeleted      = false;
+    // APIv2: 2015-05-12T15:50:38Z
+    const QString dtFormat = "\"yyyy-MM-ddTHH:mm:ssZ\"";
+
+    QDateTime res = QLocale(QLocale::English).toDateTime(value, dtFormat);
+    res.setTimeSpec(Qt::UTC);
+
+    return res;
 }
 
 QString QDropbox2EntityInfo::size() const

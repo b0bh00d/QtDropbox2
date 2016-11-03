@@ -1,21 +1,14 @@
 #pragma once
 
-#include <QObject>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QCryptographicHash>
-#include <QDateTime>
-#include <QUrl>
-#include <QDomDocument>
-#include <QEventLoop>
-#include <QUrlQuery>
+//#include <QCryptographicHash>
+//#include <QDateTime>
 
 #ifdef QTDROPBOX_DEBUG
 #include <QDebug>
 #endif
 
+#include "qdropbox2common.h"
 #include "qdropbox2global.h"
-#include "qdropbox2json.h"
 #include "qdropbox2account.h"
 #include "qdropbox2entityinfo.h"
 
@@ -392,7 +385,7 @@ private:        // data members
     QEventLoop      *eventLoop;
 
     // cached JSON results
-    QDropbox2Json   cachedJson;
+    QJsonDocument   cachedJson;
 
     QDropbox2User   account;
 };
