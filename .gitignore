@@ -25,6 +25,7 @@ debug_x64
 moc_*
 *.stash
 intermediate*
+config.h
 
 # Packages #
 ############
