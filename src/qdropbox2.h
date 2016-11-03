@@ -340,8 +340,9 @@ private:        // typedefs and enums
     typedef void(QDropbox2::*AsyncCallback)(QNetworkReply*, CallbackPtr);
 
 private:        // classes
-    // no initializers on these since we won't create instances
-    // without explicitly setting their values
+    // since we have simple types, and since we won't create instances
+    // without explicitly setting their values, we opt for the default
+    // constructors on this class to reduce code clutter.
     struct CallbackData
     {
         AsyncCallback callback;

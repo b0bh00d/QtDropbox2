@@ -21,6 +21,10 @@ Makefile*
 *.user
 *.pdb
 *.ilk
+*.bat
+*.opensdf
+release_x64
+debug_x64
 moc_*
 *.stash
 intermediate*
