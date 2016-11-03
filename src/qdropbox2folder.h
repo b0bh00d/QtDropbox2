@@ -4,7 +4,7 @@
 
 //! Allows access to folders stored on Dropbox
 
-class QDROPBOXSHARED_EXPORT QDropbox2Folder : public QObject, public QDropbox2Entity
+class QDROPBOXSHARED_EXPORT QDropbox2Folder : public QObject, public IQDropbox2Entity
 {
     Q_OBJECT
 
@@ -242,6 +242,11 @@ public:
       \returns <i>true</i> if the folder was copied or <i>false</i> if there was an error.
     */
     bool search(const QString& query, quint64 max_results = 100, const QString& mode = "filename");
+
+    /*!
+      Reimplemented from IQDropbox2Entity.
+    */
+    virtual bool isDir() const { return true; }
 
 public slots:
     void    slot_abort();

@@ -1,32 +1,32 @@
 #include "qdropbox2file.h"
 
 QDropbox2File::QDropbox2File(QObject *parent)
-	: QIODevice(parent),
-	  QDropbox2Entity(),
-	  QNAM(this)
+    : QIODevice(parent),
+      IQDropbox2Entity(),
+      QNAM(this)
 {
     init(nullptr, "");
 }
 
 QDropbox2File::QDropbox2File(QDropbox2 *api, QObject *parent)
-	: QIODevice(parent),
-	  QDropbox2Entity(),
-	  QNAM(this)
+    : QIODevice(parent),
+      IQDropbox2Entity(),
+      QNAM(this)
 {
     init(api, "");
 }
 
 QDropbox2File::QDropbox2File(const QString& filename, QDropbox2 *api, QObject *parent)
-	: QIODevice(parent),
-	  QDropbox2Entity(),
-	  QNAM(this)
+    : QIODevice(parent),
+      IQDropbox2Entity(),
+      QNAM(this)
 {
     init(api, filename);
 }
 
 QDropbox2File::QDropbox2File(const QDropbox2File& source)
-	: QIODevice(source.parent()),
-	  QDropbox2Entity(source)
+    : QIODevice(source.parent()),
+      IQDropbox2Entity(source)
 {
     init(source._api, source._filename);
 }

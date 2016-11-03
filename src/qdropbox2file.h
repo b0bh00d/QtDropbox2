@@ -13,7 +13,7 @@
   updated if it changed on the Dropbox server which, in return, means that you may
   not always have the most current version of the file content.
 */
-class QDROPBOXSHARED_EXPORT QDropbox2File : public QIODevice, public QDropbox2Entity
+class QDROPBOXSHARED_EXPORT QDropbox2File : public QIODevice, public IQDropbox2Entity
 {
     Q_OBJECT
 
@@ -279,6 +279,11 @@ public:
       Reports the current size of the data buffer.
     */
     virtual qint64 bytesAvailable() const;
+
+    /*!
+      Reimplemented from IQDropbox2Entity.
+    */
+    virtual bool isDir() const { return false; }
 
 public slots:
     void    slot_abort();

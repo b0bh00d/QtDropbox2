@@ -3,32 +3,32 @@
 #include "qdropbox2folder.h"
 
 QDropbox2Folder::QDropbox2Folder(QObject *parent)
-	: QObject(parent),
-	  QDropbox2Entity(),
-	  QNAM(this)
+    : QObject(parent),
+      IQDropbox2Entity(),
+      QNAM(this)
 {
     init(nullptr, "");
 }
 
 QDropbox2Folder::QDropbox2Folder(QDropbox2 *api, QObject *parent)
-	: QObject(parent),
-	  QDropbox2Entity(),
-	  QNAM(this)
+    : QObject(parent),
+      IQDropbox2Entity(),
+      QNAM(this)
 {
     init(api, "");
 }
 
 QDropbox2Folder::QDropbox2Folder(const QString& foldername, QDropbox2 *api, QObject *parent)
-	: QObject(parent),
-	  QDropbox2Entity(),
-	  QNAM(this)
+    : QObject(parent),
+      IQDropbox2Entity(),
+      QNAM(this)
 {
     init(api, foldername);
 }
 
 QDropbox2Folder::QDropbox2Folder(const QDropbox2Folder& source)
-	: QObject(source.parent()),
-	  QDropbox2Entity(source)
+    : QObject(source.parent()),
+      IQDropbox2Entity(source)
 {
     init(source._api, source._foldername);
 }
