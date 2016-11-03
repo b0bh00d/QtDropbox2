@@ -7,9 +7,9 @@ QtDropbox2 is a Qt-based framework for accessing the cloud storage service
 
 This project is based on the work done by Daniel Eder (lycis) in his QtDropbox
 project (https://github.com/lycis/QtDropbox).  It has been heavily re-factored
-into my particular style of C++ design, and it uses the new Dropbox APIv2
-interfaces, which makes it future-proof for when the APIv1 interfaces are
-removed in 2017.
+into my particular style of C++ coding and design.  More importantly, it now
+uses the new Dropbox APIv2 interfaces, which makes it future-proof for when the
+Dropbox APIv1 interfaces are shut down in 2017.
 
 ## Qt versions
 This projects was developed with, and tested under, Qt versions 5.4.2 and 5.6.2.
@@ -41,9 +41,9 @@ I have largely re-used the documentation system from the original project, but
 may make some more adjustments in the future.
 
 The project makes light usage of C++11, and has been compiled successfully
-under Windows (Visual Studio 2013 and QtCreator), OS X (QtCreator with clang)
-and Linux (QtCreator with gcc).  Unit tests have also run successfully under
-all three operating systems.
+under Windows (Visual Studio 2013 and QtCreator), OS X (QtCreator + clang) and
+Linux (QtCreator + gcc).  Unit tests have also run successfully under all three
+operating systems.
 
 ## Usage
 Please see the unit tests and documentation for illustrations of how to employ
