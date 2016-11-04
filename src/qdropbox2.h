@@ -108,28 +108,9 @@ public:
       \param parent The parent with which the QDropbox2 instance is associated.
      */
     explicit QDropbox2(const QString& app_key, const QString& app_secret,
+                       QObject *parent = 0,
                        OAuthMethod method = QDropbox2::Plaintext,
-                       QString url = "api.dropboxapi.com", QObject *parent = 0);
-
-    /*!
-      This constructor creates an instance of QDropbox2 with an OAuth v1 app key and secret.
-      These values will be used to retrieve a temporary access token for interaction with the
-      Dropbox account.
-
-      \param app_key The application key (provided by Dropbox for an authorized application)
-      \param app_secret The application secret (provided by Dropbox for an authorized application)
-      \param parent The parent with which the QDropbox2 instance is associated.
-     */
-    explicit QDropbox2(const QString& app_key, const QString& app_secret, QObject *parent = 0);
-
-    /*!
-      This constructor creates an default instance of QDropbox2.  Sets the authentication
-      method and url values to defaults.
-
-      \param access_token access token generated from App key and App secret (provided by Dropbox)
-      \param parent The parent with which the QDropbox2 instance is associated.
-     */
-    explicit QDropbox2(const QString& access_token, QObject *parent = 0);
+                       QString url = "api.dropboxapi.com");
 
     /*!
       This constructor initializes QDropbox2 with your access token. The selected authentication method and
@@ -140,9 +121,9 @@ public:
       \param url URL of the API server
       \param parent Parent object of QDropbox2
      */
-    explicit QDropbox2(const QString& access_token,
+    explicit QDropbox2(const QString& access_token, QObject *parent = 0,
                        OAuthMethod method = QDropbox2::Plaintext,
-                       const QString& url = "api.dropboxapi.com", QObject *parent = 0);
+                       const QString& url = "api.dropboxapi.com");
 
     /*!
       If an error occurred you can access the last error code by using this function.

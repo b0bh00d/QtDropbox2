@@ -1,10 +1,10 @@
 #include "qdropbox2.h"
 
 QDropbox2::QDropbox2(QObject *parent)
-	: QObject(parent),
-	  QNAM(this),
+    : QObject(parent),
+      QNAM(this),
       lastErrorCode(QDropbox2::NoError),
-	  eventLoop(nullptr)
+      eventLoop(nullptr)
 {
 #ifdef QTDROPBOX_DEBUG
     qDebug() << "creating dropbox api" << endl;
@@ -13,13 +13,13 @@ QDropbox2::QDropbox2(QObject *parent)
     init();
 }
 
-QDropbox2::QDropbox2(const QString& app_key, const QString& app_secret, OAuthMethod method, QString url, QObject *parent)
-	: QObject(parent),
-	  QNAM(this),
-	  appKey(app_key),
+QDropbox2::QDropbox2(const QString& app_key, const QString& app_secret, QObject *parent, OAuthMethod method, QString url)
+    : QObject(parent),
+      QNAM(this),
+      appKey(app_key),
       appSecret(app_secret),
       lastErrorCode(QDropbox2::NoError),
-	  eventLoop(nullptr)
+      eventLoop(nullptr)
 {
 #ifdef QTDROPBOX_DEBUG
     qDebug() << "creating api with access token and method" << endl;
@@ -28,41 +28,12 @@ QDropbox2::QDropbox2(const QString& app_key, const QString& app_secret, OAuthMet
     init(url, method);
 }
 
-QDropbox2::QDropbox2(const QString& app_key, const QString& app_secret, QObject *parent)
-	: QObject(parent),
-	  QNAM(this),
-	  appKey(app_key),
-      appSecret(app_secret),
+QDropbox2::QDropbox2(const QString& token, QObject *parent, OAuthMethod method, const QString& url)
+    : QObject(parent),
+      QNAM(this),
+      accessToken_(token),
       lastErrorCode(QDropbox2::NoError),
-	  eventLoop(nullptr)
-{
-#ifdef QTDROPBOX_DEBUG
-    qDebug() << "creating api with access token and method" << endl;
-#endif
-
-    init("api.dropboxapi.com", QDropbox2::Plaintext);
-}
-
-QDropbox2::QDropbox2(const QString& token, QObject *parent)
-	: QObject(parent),
-	  QNAM(this),
-	  accessToken_(token),
-      lastErrorCode(QDropbox2::NoError),
-	  eventLoop(nullptr)
-{
-#ifdef QTDROPBOX_DEBUG
-    qDebug() << "creating api with access token" << endl;
-#endif
-
-    init("api.dropboxapi.com", QDropbox2::Plaintext);
-}
-
-QDropbox2::QDropbox2(const QString& token, OAuthMethod method, const QString& url, QObject *parent)
-	: QObject(parent),
-	  QNAM(this),
-	  accessToken_(token),
-      lastErrorCode(QDropbox2::NoError),
-	  eventLoop(nullptr)
+      eventLoop(nullptr)
 {
 #ifdef QTDROPBOX_DEBUG
     qDebug() << "creating api with access token and method" << endl;
