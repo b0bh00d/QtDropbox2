@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QSharedPointer>
+#include <QSignalSpy>
 
 #include "qtdropbox2test.h"
 
@@ -19,6 +20,9 @@ QtDropbox2Test::QtDropbox2Test()
 void QtDropbox2Test::initTestCase()
 {
 #if defined(QDROPBOX2_ACCOUNT_TESTS) || defined(QDROPBOX2_FOLDER_TESTS) || defined(QDROPBOX2_FILE_TESTS)
+    qRegisterMetaType<QDropbox2User>();
+    qRegisterMetaType<QDropbox2Usage>();
+
   #if defined(QDROPBOX2_ACCESS_TOKEN)
     db2 = new QDropbox2(QDROPBOX2_ACCESS_TOKEN, this);
   #elif defined(QDROPBOX2_APP_KEY) && defined(QDROPBOX2_APP_SECRET)
@@ -41,7 +45,7 @@ void QtDropbox2Test::cleanupTestCase()
 }
 
 #if defined(QDROPBOX2_ACCOUNT_TESTS)
-void QtDropbox2Test::accountUser()
+void QtDropbox2Test::accountUser_sync()
 {
     QVERIFY(db2 != nullptr);
 
@@ -63,13 +67,61 @@ void QtDropbox2Test::accountUser()
     //out << "\t       country: " << info.country() << "\n";
 }
 
-void QtDropbox2Test::accountUsage()
+void QtDropbox2Test::accountUser_async()
+{
+    QVERIFY(db2 != nullptr);
+
+    QSignalSpy spy(db2, &QDropbox2::signal_userInfoReceived);
+
+    // Retrieve APIv2 account user information (asynchronous)
+    QCOMPARE(db2->userInfo(), true);
+
+    QVERIFY(spy.wait());
+
+    QTRY_COMPARE(spy.count(), 1);   // make sure the signal was emitted exactly one time
+    QDropbox2User info = qvariant_cast<QDropbox2User>(spy.at(0).at(0));
+
+    //QTextStream out(stdout);
+    //out << info.displayName() << ":\n";
+    //out << "\t            id: " << info.id() << "\n";
+    //out << "\t          type: " << info.type() << "\n";
+    //out << "\t          name: " << info.displayName() << "\n";
+    //out << "\t         email: " << info.email() << "\n";
+    //out << "\t emailVerified: " << (info.emailVerified() ? "true" : "false") << "\n";
+    //out << "\t    isDisabled: " << (info.isDisabled() ? "true" : "false") << "\n";
+    //out << "\t        locale: " << info.locale() << "\n";
+    //out << "\t  referralLink: " << info.referralLink().toString() << "\n";
+    //out << "\t      isPaired: " << (info.isPaired() ? "true" : "false") << "\n";
+    //out << "\t       country: " << info.country() << "\n";
+}
+
+void QtDropbox2Test::accountUsage_sync()
 {
     QVERIFY(db2 != nullptr);
 
     // Retrieve APIv2 account usage information (synchronous)
     QDropbox2Usage info;
     QCOMPARE(db2->usageInfo(info), true);
+
+    //QTextStream out(stdout);
+    //out << "\t          used: " << info.used() << "\n";
+    //out << "\t     allocated: " << info.allocated() << "\n";
+    //out << "\tallocationType: " << info.allocationType() << "\n";
+}
+
+void QtDropbox2Test::accountUsage_async()
+{
+    QVERIFY(db2 != nullptr);
+
+    QSignalSpy spy(db2, &QDropbox2::signal_usageInfoReceived);
+
+    // Retrieve APIv2 account usage information (asynchronous)
+    QCOMPARE(db2->usageInfo(), true);
+
+    QVERIFY(spy.wait());
+
+    QTRY_COMPARE(spy.count(), 1);   // make sure the signal was emitted exactly one time
+    QDropbox2Usage info = qvariant_cast<QDropbox2Usage>(spy.at(0).at(0));
 
     //QTextStream out(stdout);
     //out << "\t          used: " << info.used() << "\n";

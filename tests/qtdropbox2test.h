@@ -23,8 +23,10 @@ private Q_SLOTS:
     void cleanupTestCase();
 
 #if defined(QDROPBOX2_ACCOUNT_TESTS)
-    void accountUser();
-    void accountUsage();
+    void accountUser_sync();
+    void accountUser_async();
+    void accountUsage_sync();
+    void accountUsage_async();
 #endif
 
 #if defined(QDROPBOX2_FOLDER_TESTS)
@@ -63,3 +65,8 @@ private:        // data members
     QString     db_path;
 #endif
 };
+
+#if defined(QDROPBOX2_ACCOUNT_TESTS)
+Q_DECLARE_METATYPE(QDropbox2User)
+Q_DECLARE_METATYPE(QDropbox2Usage)
+#endif
