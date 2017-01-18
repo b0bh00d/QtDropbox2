@@ -33,6 +33,9 @@ Example:
 If provided, this value will take precedence over the QDROPBOX2_APP_KEY and
 QDROPBOX2_APP_SECRET values.
 
+You can enable your application, and generate the Access Token, from the
+Developer App Console, https://www.dropbox.com/developers/apps.
+
 ## Enabling Tests
 You need to define certain values to enable certain tests.  For example, in
 order to enable the QDropbox2 account tests, you will need to define
@@ -67,7 +70,9 @@ For file tests, you will need to define a local file to be uploaded/downloaded:
 
 Please note that the framework is currently limited to a single file of no more
 than 150MB in size for uploading.  Files larger than that will cause a failure
-of the upload interface.
+of the upload interface.  This is because the "upload_session" REST interface
+has not yet been implemented that would allow files larger than this limit to
+be exchanged.
 
 ## Build & Execute
 The projects in this repository assume you will be using QtCreator to build

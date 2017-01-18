@@ -24,18 +24,24 @@ account-based actions (e.g., user details) are only in QDropbox2, folder-actions
 are circumscribed to the QDropbox2Folder class, etc.
 
 Like the original project, some features have both synchronous and asynchronous
-(signal/slot-base) versions.  Some are synchronous only because they involve
-small amounts of data.
+(signal/slot-base) versions.  Some do not have corresponding asynchronous
+versions because only small amounts of data are involved in the exchanged, so
+should not provide taxing.
 
 The unit tests have also been greatly expanded to exercise most of the feature
 set.  All unit tests exercise only synchronous calls; QtTest doesn't appear to
 provide a mechanism for handling signal/slot-based tests.
 
 ### Current status
-QtDropbox2 currently provides a robust interface to Dropbox, but it does not
-currently wrap any of the APIv2 "sharing" interfaces.  If there is interest in
-having those, I will add them in the future.  For now, however, it nicely
-satisfies my particular needs.
+QtDropbox2 provides a robust interface to Dropbox, but it does not currently
+wrap any of the APIv2 "sharing" interfaces.  If there is interest in having
+those, I will add them in the future.  For now, however, it nicely satisfies
+my particular needs.
+
+Additionally, the library does not currently implement the "upload_session" REST
+interface, which provides for sending files that are greater than 150MB in size.
+I realize this is a severe limitation, and I will look into implementing this
+when I have the time.
 
 I have largely re-used the documentation system from the original project, but
 may make some more adjustments in the future.
