@@ -29,19 +29,20 @@ versions because only small amounts of data are involved in the exchanged, so
 should not provide taxing.
 
 The unit tests have also been greatly expanded to exercise most of the feature
-set.  All unit tests exercise only synchronous calls; QtTest doesn't appear to
-provide a mechanism for handling signal/slot-based tests.
+set.  Most unit tests exercise synchronous calls, a few others test deferred
+(signal-based) results.
 
 ### Current status
 QtDropbox2 provides a robust interface to Dropbox, but it does not currently
-wrap any of the APIv2 "sharing" interfaces.  If there is interest in having
-those, I will add them in the future.  For now, however, it nicely satisfies
-my particular needs.
+wrap any of the APIv2 "sharing" or "paper" interfaces.  If there is interest
+in having those, I will add them in the future.  For now, however, it nicely
+satisfies my particular needs.
 
-Additionally, the library does not currently implement the "upload_session" REST
-interface, which provides for sending files that are greater than 150MB in size.
-I realize this is a severe limitation, and I will look into implementing this
-when I have the time.
+The library also implements the "upload_session" REST interface, which provides
+for sending files of any size (beyond the 150MB limit of "upload").  The
+selection of which interface to use--"upload" or "upload_session"--is invisible
+to the API user.  The library will choose the correct interface based on the
+size of the file being uploaded.
 
 I have largely re-used the documentation system from the original project, but
 may make some more adjustments in the future.

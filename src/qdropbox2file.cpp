@@ -106,7 +106,7 @@ bool QDropbox2File::open(QIODevice::OpenMode mode)
 
     // clear buffer and reset position if this file was opened in write mode
     // with truncate - or if append was not set
-    if(isMode(QIODevice::WriteOnly) && 
+    if(isMode(QIODevice::WriteOnly) &&
        (isMode(QIODevice::Truncate) || !isMode(QIODevice::Append))
       )
     {
@@ -175,7 +175,7 @@ bool QDropbox2File::event(QEvent *event)
 //void QDropbox2File::setFlushThreshold(qint64 num)
 //{
 //    if(num < 0)
-//        num = 150*1024*1024;
+//        num = MaxSingleUpload;
 //    bufferThreshold = num;
 //}
 
@@ -210,7 +210,7 @@ qint64 QDropbox2File::readData(char *data, qint64 maxlen)
     QByteArray tmp = _buffer->mid(position, maxlen);
     const qint64 read = tmp.size();
     memcpy(data, tmp.data(), read);
-   
+
 #ifdef QTDROPBOX_DEBUG
     qDebug() << "new size = " << _buffer->size() << endl;
     //qDebug() << "new bytes = " << _buffer->toHex() << endl;
@@ -225,25 +225,20 @@ qint64 QDropbox2File::writeData(const char *data, qint64 len)
 {
     int written_bytes = 0;
 
-    // if we exceed the APIv2 single-call "/upload" threshold of
-    // 150MB, we fail...
-    if((currentThreshold + len) < bufferThreshold)
-    {
-        qint64 oldlen = _buffer->size();
-        _buffer->insert(position, data, len);
+    qint64 oldlen = _buffer->size();
+    _buffer->insert(position, data, len);
 
-        //// flush if the threshold is reached
-        //if(currentThreshold > bufferThreshold)
-        //    flush();
+    //// flush if the threshold is reached
+    //if(currentThreshold > bufferThreshold)
+    //    flush();
 
-        currentThreshold += len;
-        written_bytes = len;
+    currentThreshold += len;
+    written_bytes = len;
 
-        if(_buffer->size() != oldlen+len)
-            written_bytes = (oldlen-_buffer->size());
+    if(_buffer->size() != oldlen+len)
+        written_bytes = (oldlen-_buffer->size());
 
-        position += written_bytes;
-    }
+    position += written_bytes;
 
     return written_bytes;
 }
@@ -290,7 +285,7 @@ QNetworkReply* QDropbox2File::sendPOST(QNetworkRequest& rq, QByteArray& postdata
 {
     QNetworkReply *reply = QNAM.post(rq, postdata);
     connect(this, &QDropbox2File::signal_operationAborted, reply, &QNetworkReply::abort);
-    connect(reply, &QNetworkReply::uploadProgress, this, &QDropbox2File::signal_uploadProgress);
+    connect(reply, &QNetworkReply::uploadProgress, this, &QDropbox2File::slot_uploadProgress);
     return reply;
 }
 
@@ -401,7 +396,10 @@ bool QDropbox2File::putFile()
 
     QUrl url;
     url.setUrl(QDROPBOX2_CONTENT_URL, QUrl::StrictMode);
-    url.setPath("/2/files/upload");
+    if(_buffer->length() <= MaxSingleUpload)
+        url.setPath("/2/files/upload");
+    else
+        url.setPath("/2/files/upload_session/start");
 
     Q_ASSERT(url.isValid());
 
@@ -416,17 +414,28 @@ bool QDropbox2File::putFile()
                                         .arg(rename ? "true" : "false");
 #ifdef QTDROPBOX_DEBUG
     qDebug() << "QDropbox2File::Dropbox-API-arg " << json << endl;
+    qDebug() << "QDropbox2File::putFile " << url.toString() << endl;
 #endif
-    req.setRawHeader("Dropbox-API-arg", json.toUtf8());
+    QNetworkReply* reply = nullptr;
+
+    if(_buffer->length() <= MaxSingleUpload)
+    {
+        req.setRawHeader("Dropbox-API-arg", json.toUtf8());
+        reply = sendPOST(req, *_buffer);
+    }
+    else
+    {
+        QString session_json = QString("{ \"close\": false }");
+        req.setRawHeader("Dropbox-API-arg", session_json.toUtf8());
+
+        QByteArray dummy_data;
+        reply = sendPOST(req, dummy_data);
+
+        session_starts[reply] = json;
+    }
 
     // "{ \"path\": \"%1\", \"mode\": \"overwrite\", \"autorename\": %2, \"mute\": true }"
     // "{ \"path\": \"%1\", \"mode\": \"update\", \"autorename\": %2, \"mute\": true }"
-
-#ifdef QTDROPBOX_DEBUG
-    qDebug() << "QDropbox2File::putFile " << url.toString() << endl;
-#endif
-
-    QNetworkReply* reply = sendPOST(req, *_buffer);
 
     CallbackPtr reply_data(new CallbackData);
     reply_data->callback = &QDropbox2File::resultPutFile;
@@ -466,7 +475,7 @@ void QDropbox2File::resultPutFile(QNetworkReply *reply, CallbackPtr /*reply_data
 
 #ifdef QTDROPBOX_DEBUG
     resp_str = response;
-    qDebug() << "QDropbox2File::replyFileWrite response = " << resp_str << endl;
+    qDebug() << "QDropbox2File::resultPutFile response = " << resp_str << endl;
 #endif
 
     if(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == QDROPBOX_V2_ERROR)
@@ -487,7 +496,7 @@ void QDropbox2File::resultPutFile(QNetworkReply *reply, CallbackPtr /*reply_data
 
         lastErrorCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 #ifdef QTDROPBOX_DEBUG
-        qDebug() << "QDropbox2File::replyFileWrite jason.valid = " << json.isValid() << endl;
+        qDebug() << "QDropbox2File::resultPutFile jason.valid = " << json.isValid() << endl;
 #endif
 
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
@@ -498,15 +507,99 @@ void QDropbox2File::resultPutFile(QNetworkReply *reply, CallbackPtr /*reply_data
             _metadata->deleteLater();
         _metadata = nullptr;
 
-        QJsonParseError jsonError;
-        QJsonDocument json = QJsonDocument::fromJson(resp_str.toUtf8(), &jsonError);
-        if(jsonError.error == QJsonParseError::NoError)
+        QJsonObject object;
+        if(!response.isNull() && !response.isEmpty()) // might be the case for an upload session
         {
-            QJsonObject object = json.object();
-            _metadata = new QDropbox2EntityInfo(object, this);
+            QJsonParseError jsonError;
+            QJsonDocument json = QJsonDocument::fromJson(response, &jsonError);
+            if(jsonError.error == QJsonParseError::NoError && !json.isEmpty())
+                object = json.object();
         }
 
-        emit bytesWritten(_buffer->size());
+        SessionPtr sd;
+        if(session_starts.contains(reply))
+        {
+            // we've initiated a new upload session
+
+            sd = SessionPtr(new SessionData());
+
+            // this will be an upload_session id on the first response
+            Q_ASSERT(object.contains("session_id"));
+            sd->session_id = object["session_id"].toString();
+            sd->session_parameters = session_starts[reply];
+            sd->session_offset = 0;
+
+            session_starts.remove(reply);
+        }
+        else if(upload_sessions.contains(reply))
+        {
+            // continue an active session
+            sd = upload_sessions[reply];
+            // set this here so upload progress uses correct values
+            sd->session_offset += sd->session_payload;
+
+            upload_sessions.remove(reply);
+        }
+
+        // do we have an active upload session?
+        if(!sd.isNull())
+        {
+            int remaining = _buffer->length() - sd->session_offset;
+
+            if(remaining)
+            {
+                QUrl url;
+                url.setUrl(QDROPBOX2_CONTENT_URL, QUrl::StrictMode);
+
+                // have we reached the end of the buffer?
+                if(remaining <= MaxSingleUpload)
+                    url.setPath("/2/files/upload_session/finish");      // upload the final chunk
+                else
+                    url.setPath("/2/files/upload_session/append_v2");   // upload the next chunk
+
+                Q_ASSERT(url.isValid());
+
+                QNetworkRequest req;
+                if(!_api->createAPIv2Reqeust(url, req))
+                    return;
+
+                req.setHeader(QNetworkRequest::ContentTypeHeader, "application/octet-stream");
+                QString json = QString("{ \"cursor\": { \"session_id\": \"%1\", \"offset\": %2 }, ")
+                                        .arg(sd->session_id)
+                                        .arg(sd->session_offset);
+
+                if(remaining <= MaxSingleUpload)
+                    json += QString("\"commit\": %3 }").arg(sd->session_parameters);
+                else
+                    json += QStringLiteral("\"close\": false }");
+
+                req.setRawHeader("Dropbox-API-arg", json.toUtf8());
+
+                sd->session_payload = (remaining < MaxSingleUpload) ? remaining : MaxSingleUpload;
+
+                QByteArray session_data = _buffer->mid(sd->session_offset, sd->session_payload);
+                QNetworkReply* new_reply = sendPOST(req, session_data);
+
+                upload_sessions[new_reply] = sd;
+
+                CallbackPtr reply_data(new CallbackData);
+                reply_data->callback = &QDropbox2File::resultPutFile;
+                replyMap[new_reply] = reply_data;
+
+                // not very structured, but we need to keep the event loop
+                // going, so we bail here...
+
+                return;
+            }
+            else    // we're done.
+                // 'object' should be metadata from an "upload_session/finish"
+                _metadata = new QDropbox2EntityInfo(object, this);
+        }
+        else    // regular upload
+            _metadata = new QDropbox2EntityInfo(object, this);
+
+        if(_metadata)
+            emit bytesWritten(_buffer->size());
     }
 
     stopEventLoop();
@@ -548,7 +641,7 @@ void QDropbox2File::obtainMetadata()
         _metadata->deleteLater();
     _metadata = nullptr;
 
-    // APIv2 Note: Metadata for the root folder is unsupported. 
+    // APIv2 Note: Metadata for the root folder is unsupported.
     if(!_filename.compare("/") || _filename.isEmpty())
     {
         lastErrorCode = QDropbox2::APIError;
@@ -579,7 +672,7 @@ void QDropbox2File::obtainMetadata()
 #endif
         QByteArray postdata = json.toUtf8();
         (void)sendPOST(req, postdata);
-    
+
         startEventLoop();
 
         if(lastErrorCode != 0)
@@ -822,6 +915,25 @@ bool QDropbox2File::reset()
 void QDropbox2File::slot_abort()
 {
     emit signal_operationAborted();
+}
+
+void QDropbox2File::slot_uploadProgress(qint64 bytesSent, qint64 bytesTotal)
+{
+    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+    if(!session_starts.contains(reply) && !upload_sessions.contains(reply))
+        emit signal_uploadProgress(bytesSent, bytesTotal);
+    else if(bytesTotal && !session_starts.contains(reply))    // no progress with a start
+    {
+        // we have to adjust the values based on the progress
+        // of the upload session.  bytesSent/bytesTotal are only
+        // for the current chunk.
+
+        SessionPtr sd = upload_sessions[reply];
+
+        // 'sd->session_payload' should be equal to 'bytesTotal'
+
+        emit signal_uploadProgress(sd->session_offset + bytesSent, _buffer->length());
+    }
 }
 
 qint64 QDropbox2File::bytesAvailable() const

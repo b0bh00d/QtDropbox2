@@ -9,6 +9,8 @@
 #  define QDROPBOXSHARED_EXPORT Q_DECL_IMPORT
 #endif
 
+const int MaxSingleUpload = (150*1024*1024);
+
 #ifndef QDROPBOX_V2_HTTP_ERROR_CODES
 #define QDROPBOX_V2_HTTP_ERROR_CODES
 

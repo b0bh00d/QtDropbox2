@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QtCore/QFile>
+
 #include "qdropbox2common.h"
 
 #include "qdropbox2.h"
@@ -338,11 +340,17 @@ protected:
 
 private slots:
     void    slot_networkRequestFinished(QNetworkReply* rply);
+    void    slot_uploadProgress(qint64 bytesSent, qint64 bytesTotal);
 
 private:        // typedefs and enums
     struct CallbackData;
     typedef QSharedPointer<CallbackData> CallbackPtr;
     typedef QMap<QNetworkReply*, CallbackPtr> ReplyMap;
+
+    struct SessionData;
+    typedef QSharedPointer<SessionData> SessionPtr;
+    typedef QMap<QNetworkReply*, SessionPtr> SessionMap;
+    typedef QMap<QNetworkReply*, QString> SessionStartMap;
 
     typedef void(QDropbox2File::*AsyncCallback)(QNetworkReply*, CallbackPtr);
 
@@ -355,13 +363,29 @@ private:        // classes
         AsyncCallback callback;
     };
 
-private:        // methods
-    // The APIv2 protocol can handle files up to 150MB (150*1024*1024) in
-    // size using the regular single-call "/upload" protocol.  We don't
-    // handle files larger than that in this library (which would require
-    // the "/upload_session" protocol instead).
+    // this data contains per-session settings for the "upload_session"
+    // action.  it's possible to have multiple upload sessions running
+    // concurrently, and this is a step in that direction.  however, for
+    // now, we will only do one session at a time circumscribed to each
+    // QDropbox2File class.  for efficiency, I'm thinking this could be
+    // pulled out to some kind of external upload-session manager
+    // instance at a later time with which each QDropbox2File upload
+    // will register.
+    struct SessionData
+    {
+        QString     session_parameters;
+        QString     session_id;
+        int         session_offset;
+        int         session_payload;
 
-    void    init(QDropbox2 *api, const QString& filename, qint64 threshold = 157286400);
+        SessionData()
+            : session_offset(0),
+              session_payload(0)
+        {}
+    };
+
+private:        // methods
+    void    init(QDropbox2 *api, const QString& filename, qint64 threshold = MaxSingleUpload);
 
     QNetworkReply* sendPOST(QNetworkRequest& rq, QByteArray& postdata);
     QNetworkReply* sendGET(QNetworkRequest& rq);
@@ -400,7 +424,7 @@ private:        // data members
 
     QDropbox2   *_api;
 
-    // for asynchronous functions
+    // for deferred functions
     ReplyMap    replyMap;
 
     // for synchronous functions
@@ -421,6 +445,10 @@ private:        // data members
     bool        rename;
 
     int         position;
+
+    // for upload_session
+    SessionStartMap session_starts;
+    SessionMap  upload_sessions;
 
     QDropbox2EntityInfo *_metadata;
 };
