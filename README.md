@@ -26,7 +26,7 @@ are circumscribed to the QDropbox2Folder class, etc.
 Like the original project, some features have both synchronous and asynchronous
 (signal/slot-base) versions.  Some do not have corresponding asynchronous
 versions because only small amounts of data are involved in the exchanged, so
-should not provide taxing.
+should not prove taxing to either the network or CPU cycles.
 
 The unit tests have also been greatly expanded to exercise most of the feature
 set.  Most unit tests exercise synchronous calls, a few others test deferred

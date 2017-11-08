@@ -21,4 +21,12 @@ unix {
         QMAKE_MAC_SDK=macosx10.11
     }
 }
+win32 {
+    CONFIG(debug, debug|release) {
+    } else {
+        QMAKE_CXXFLAGS_RELEASE += $$QMAKE_CFLAGS_RELEASE_WITH_DEBUGINFO
+        QMAKE_LFLAGS_RELEASE += $$QMAKE_LFLAGS_RELEASE_WITH_DEBUGINFO
+    }
+}
+
 include(qtdropbox2.pri)
