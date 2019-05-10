@@ -1,5 +1,16 @@
-# QtDropbox2
+# QtDropbox2 - QML Implementation
 A C++ Qt-based framework for accessing Dropbox using APIv2
+
+## Fork Information (CMGeorge repo)
+The role of this fork is to extend the library to QML
+
+For more informations see [QMLDropBox](https://github.com/CMGeorge/QMLDropBox)
+
+**Supported features:**
+1. List directoryes
+2. Rename File / Directory
+3. Download file
+
 
 ## Summary
 QtDropbox2 is a Qt-based framework for accessing the cloud storage service
