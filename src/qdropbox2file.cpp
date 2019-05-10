@@ -371,7 +371,7 @@ void QDropbox2File::resultGetFile(QNetworkReply *reply, CallbackPtr /*reply_data
 
         lastErrorCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 #ifdef QTDROPBOX_DEBUG
-        qDebug() << "QDropbox2File::replyFileContent jason.valid = " << json.isValid() << endl;
+//        qDebug() << "QDropbox2File::replyFileContent jason.valid = " << json.isValid() << endl;
 #endif
 
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
@@ -496,7 +496,7 @@ void QDropbox2File::resultPutFile(QNetworkReply *reply, CallbackPtr /*reply_data
 
         lastErrorCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 #ifdef QTDROPBOX_DEBUG
-        qDebug() << "QDropbox2File::resultPutFile jason.valid = " << json.isValid() << endl;
+//        qDebug() << "QDropbox2File::resultPutFile jason.valid = " << json.isValid() << endl;
 #endif
 
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);

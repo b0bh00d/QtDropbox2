@@ -1,10 +1,13 @@
 #pragma once
 
 #include "qdropbox2common.h"
+#include <QQmlEngine>
 
 #include "qdropbox2.h"
 #include "qdropbox2entity.h"
 #include "qdropbox2entityinfo.h"
+
+#import "FoldersModel.h"
 
 //! Allows access to folders stored on Dropbox
 
@@ -13,7 +16,8 @@ class QDROPBOXSHARED_EXPORT QDropbox2Folder : public QObject, public IQDropbox2E
     Q_OBJECT
 
 public:     // typedefs and enums
-    typedef QList<QDropbox2EntityInfo> ContentsList;
+//    typedef QList<QDropbox2EntityInfo*> ContentsList;
+//    typedef QList<QDropbox2EntityInfo*> ContentsList;
 
 public:
     /*!
@@ -162,7 +166,7 @@ public:
       \param changes Container to receive the changes detected.
       \returns <i>true</i> if the folder has changes or <i>false</i> if it has not.
     */
-    bool hasChanged(ContentsList& changes);
+    bool hasChanged(FoldersModel *changes);
 
     /*!
       Poll a folder contents for changes since the last check.
@@ -200,7 +204,7 @@ public:
       \param include_deleted Include deleted files in the result.
       \returns <i>true</i> if the retreival was successful or <i>false</i> if it was not.
     */
-    bool contents(ContentsList& contents, bool include_folders = true, bool include_deleted = false);
+    bool contents(FoldersModel *contents, bool include_folders = true, bool include_deleted = false);
 
     /*!
       Gets and returns all the contents of the folder.
@@ -230,7 +234,7 @@ public:
       \param mode The search mode, one of 'filename', 'filename_and_content' or 'filename_deleted'.
       \returns <i>true</i> if the folder was copied or <i>false</i> if there was an error.
     */
-    bool search(ContentsList& contents, const QString& query, quint64 max_results = 100, const QString& mode = "filename");
+    bool search(FoldersModel *contents, const QString& query, quint64 max_results = 100, const QString& mode = "filename");
 
     /*!
       Search for files and folders that match the search query.
@@ -268,9 +272,9 @@ signals:
 
     void    signal_operationAborted();
 
-    void    signal_contentsResults(const ContentsList& contents_results);
-    void    signal_searchResults(const ContentsList& search_results);
-    void    signal_hasChangedResults(const ContentsList& change_results);
+    void    signal_contentsResults(const FoldersModel *contents_results);
+    void    signal_searchResults(const FoldersModel *search_results);
+    void    signal_hasChangedResults(const FoldersModel *change_results);
 
 private slots:
     void    slot_networkRequestFinished(QNetworkReply* rply);
@@ -352,3 +356,5 @@ private:        // data members
 };
 
 Q_DECLARE_METATYPE(QDropbox2Folder);
+//Q_DECLARE_METATYPE(FoldersModel);
+Q_DECLARE_METATYPE(FoldersModel::ContentsList);

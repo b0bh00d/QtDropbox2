@@ -1,0 +1,11 @@
+#ifndef CONFIG_H_IN
+#define CONFIG_H_IN
+
+#define QDROPBOX2_ACCOUNT_TESTS true
+#define QDROPBOX2_FOLDER_TESTS true
+#define QDROPBOX2_FILE_TESTS true
+#define QDROPBOX2_ACCESS_TOKEN ""
+#define QDROPBOX2_FOLDER ""
+#define QDROPBOX2_FOLDER_NEW "NewFolder"
+#define QDROPBOX2_FILE ""
+#endif // CONFIG_H_IN

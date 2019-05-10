@@ -4,7 +4,7 @@ TEMPLATE = lib
 #CONFIG += dll
 
 CONFIG += C++11
-QT += network xml
+QT += network xml qml quick
 QT -= gui
 
 TARGET = QtDropbox2

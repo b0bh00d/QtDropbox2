@@ -70,6 +70,7 @@ public:
     */
     QDropbox2EntityInfo& operator=(const QDropbox2EntityInfo& other);
 
+public slots:
     /*!
       Raw Dropbox file identifier.
     */

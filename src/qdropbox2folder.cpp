@@ -210,7 +210,7 @@ bool QDropbox2Folder::getLatestCursor(QString& cursor, bool include_deleted)
     return result;
 }
 
-bool QDropbox2Folder::hasChanged(ContentsList& changes)
+bool QDropbox2Folder::hasChanged(FoldersModel *changes)
 {
     if(latestCursor.isEmpty())
     {
@@ -236,7 +236,7 @@ bool QDropbox2Folder::hasChanged(ContentsList& changes)
             return false;
 
         foreach(const QJsonValue& entry, data)
-            changes.append(QDropbox2EntityInfo(entry.toObject()));
+            changes->append(new QDropbox2EntityInfo(entry.toObject()));
     }
 
     return true;
@@ -276,13 +276,13 @@ void QDropbox2Folder::hasChangedCallback(QNetworkReply* /*reply*/, CallbackPtr /
         }
         else
         {
-            QDropbox2Folder::ContentsList changes;
+            FoldersModel *changes = new FoldersModel();
 
             QJsonArray data = object.value("entries").toArray();
             if(data.count())
             {
                 foreach(const QJsonValue& entry, data)
-                    changes.append(QDropbox2EntityInfo(entry.toObject()));
+                    changes->append(new QDropbox2EntityInfo(entry.toObject()));
             }
 
             emit signal_hasChangedResults(changes);
@@ -377,7 +377,7 @@ void QDropbox2Folder::obtainMetadata()
         lastErrorCode = QDropbox2::APIError;
         lastErrorMessage = "Metadata for the root folder is unsupported.";
 #ifdef QTDROPBOX_DEBUG
-        qDebug() << "error: " << errorText << endl;
+        qDebug() << "error: " << lastErrorMessage << endl;
 #endif
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
     }
@@ -426,7 +426,7 @@ void QDropbox2Folder::obtainMetadata()
                 lastErrorCode = QDropbox2::APIError;
                 lastErrorMessage = "Dropbox API did not send correct answer for file/directory metadata.";
 #ifdef QTDROPBOX_DEBUG
-                qDebug() << "error: " << errorText << endl;
+                qDebug() << "error: " << lastErrorMessage << endl;
 #endif
                 emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
             }
@@ -637,10 +637,10 @@ bool QDropbox2Folder::requestCopy(const QString& to_path)
 //--------------------------------------
 // List Folder
 
-bool QDropbox2Folder::contents(QDropbox2Folder::ContentsList& contents, bool include_folders, bool include_deleted)
+bool QDropbox2Folder::contents(FoldersModel *contents, bool include_folders, bool include_deleted)
 {
     bool result = false;
-    contents.clear();
+    contents->clear();
     latestCursor.clear();       // make sure we get a "current" listing, not a differential
 
 #ifdef QTDROPBOX_DEBUG
@@ -677,7 +677,7 @@ bool QDropbox2Folder::contents(QDropbox2Folder::ContentsList& contents, bool inc
                             continue;
                     }
 
-                    contents.append(QDropbox2EntityInfo(entry.toObject()));
+                    contents->append(new QDropbox2EntityInfo(entry.toObject()));
                 }
             }
 
@@ -727,7 +727,7 @@ void QDropbox2Folder::contentsCallback(QNetworkReply* /*reply*/, CallbackPtr rep
     }
     else
     {
-        ContentsList contents_results;
+        FoldersModel *contents_results = new FoldersModel();
         ContentsData* contents_data = reinterpret_cast<ContentsData*>(reply_data.data());
 
         QJsonParseError jsonError;
@@ -747,7 +747,7 @@ void QDropbox2Folder::contentsCallback(QNetworkReply* /*reply*/, CallbackPtr rep
                             continue;
                     }
 
-                    contents_results.append(QDropbox2EntityInfo(entry.toObject()));
+                    contents_results->append(new QDropbox2EntityInfo(entry.toObject()));
                 }
             }
 
@@ -810,10 +810,10 @@ bool QDropbox2Folder::getContents(QNetworkReply*& reply, const QString& cursor, 
 //--------------------------------------
 // Search
 
-bool QDropbox2Folder::search(QDropbox2Folder::ContentsList& contents, const QString& query, quint64 max_results, const QString& mode)
+bool QDropbox2Folder::search(FoldersModel *contents, const QString& query, quint64 max_results, const QString& mode)
 {
     bool result = false;
-    contents.clear();
+    contents->clear();
 
 #ifdef QTDROPBOX_DEBUG
     qDebug() << "QDropbox2Folder::search()" << endl;
@@ -845,7 +845,7 @@ bool QDropbox2Folder::search(QDropbox2Folder::ContentsList& contents, const QStr
                 {
                     QJsonObject obj = entry.toObject();
                     if(obj.contains("metadata"))
-                        contents.append(QDropbox2EntityInfo(entry.toObject()));
+                        contents->append(new QDropbox2EntityInfo(entry.toObject()));
                 }
             }
 
@@ -891,7 +891,7 @@ void QDropbox2Folder::searchCallback(QNetworkReply* /*reply*/, CallbackPtr /*rep
     }
     else
     {
-        ContentsList search_results;
+        FoldersModel *search_results = new FoldersModel();
 
         QJsonParseError jsonError;
         QJsonDocument json = QJsonDocument::fromJson(lastResponse.toUtf8(), &jsonError);
@@ -905,7 +905,7 @@ void QDropbox2Folder::searchCallback(QNetworkReply* /*reply*/, CallbackPtr /*rep
                 {
                     QJsonObject obj = entry.toObject();
                     if(obj.contains("metadata"))
-                        search_results.append(QDropbox2EntityInfo(entry.toObject()));
+                        search_results->append(new QDropbox2EntityInfo(entry.toObject()));
                 }
             }
         }
