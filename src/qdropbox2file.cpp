@@ -148,8 +148,9 @@ bool QDropbox2File::open(QIODevice::OpenMode mode)
 
 bool QDropbox2File::downloadFile()
 {
+    init(_api,_filename);
     QDropbox2File::open(QIODevice::ReadOnly);
-    return true;
+//    return true;
     QDropbox2EntityInfo info(metadata());
 //    qDebug()<<"MetaID Empty? "<<info.id().isEmpty();
 
@@ -191,6 +192,7 @@ void QDropbox2File::close()
 void QDropbox2File::setApi(QDropbox2 *dropbox)
 {
     _api = dropbox;
+//init(dropbox,filename());
 }
 
 void QDropbox2File::setFilename(const QString& filename)
@@ -337,7 +339,7 @@ QNetworkReply* QDropbox2File::sendGET(QNetworkRequest& rq)
     QNetworkReply *reply = QNAM.get(rq);
     connect(this, &QDropbox2File::signal_operationAborted, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::downloadProgress, this, &QDropbox2File::signal_downloadProgress);
-    connect(reply, &QNetworkReply::finished,this,&QDropbox2File::signal_downloadFinished);
+//    connect(reply, &QNetworkReply::finished,this,&QDropbox2File::signal_downloadFinished);
     return reply;
 }
 
@@ -367,13 +369,14 @@ bool QDropbox2File::getFile(const QString& filename)
 
     QNetworkReply* reply = sendGET(req);
 
-    CallbackPtr reply_data(new CallbackData);
+    CallbackPtr reply_data(new CallbackData());
     reply_data->callback = &QDropbox2File::resultGetFile;
     replyMap[reply] = reply_data;
 
+
     startEventLoop();
     qDebug()<<"Event loop ended "<<lastErrorMessage;
-    return true;
+
     fileExists = !lastErrorMessage.contains("path/not_found");
     result = (lastErrorCode == 0 || lastErrorCode == 200 || lastErrorCode == 206 || !fileExists);
     if(!result)
