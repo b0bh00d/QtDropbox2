@@ -1,3 +1,5 @@
+INCLUDEPATH += $$PWD/src
+
 SOURCES += \
     $$PWD/src/FoldersModel.cpp \
     $$PWD/src/qdropbox2.cpp \

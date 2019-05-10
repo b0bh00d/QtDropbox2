@@ -14,6 +14,8 @@ public:
     enum FolderListRole {
         IdRole = Qt::UserRole, // 256
         NameRole,
+        DirectoryRole,
+        PathRole
     };
     //TODO: Change to no QDropbox2EntityInfo pointer as soon as a qml test exists
     typedef QList<QDropbox2EntityInfo*> ContentsList;

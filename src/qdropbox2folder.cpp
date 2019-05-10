@@ -1,4 +1,5 @@
 #include <QDir>
+#include <QCoreApplication>
 
 #include "qdropbox2folder.h"
 
@@ -7,7 +8,8 @@ QDropbox2Folder::QDropbox2Folder(QObject *parent)
       IQDropbox2Entity(),
       QNAM(this)
 {
-    init(nullptr, "");
+    init(nullptr,
+         "");
 }
 
 QDropbox2Folder::QDropbox2Folder(QDropbox2 *api, QObject *parent)
@@ -49,13 +51,15 @@ void QDropbox2Folder::init(QDropbox2 *api, const QString& foldername)
     lastErrorCode     = 0;
     lastErrorMessage  = "";
 
-    if(api)
+    if(api){
         accessToken = api->accessToken();
-
+    }
     connect(&QNAM, &QNetworkAccessManager::finished, this, &QDropbox2Folder::slot_networkRequestFinished);
 
-    getLatestCursor(latestCursor);
-}
+    if (api){
+        getLatestCursor(latestCursor);
+
+    }}
 
 int QDropbox2Folder::error()
 {
@@ -164,7 +168,8 @@ bool QDropbox2Folder::getLatestCursor(QString& cursor, bool include_deleted)
 #endif
 
     QUrl url;
-    url.setUrl(QDROPBOX2_API_URL, QUrl::StrictMode);
+    url.setUrl(QDROPBOX2_API_URL,
+               QUrl::StrictMode);
     url.setPath("/2/files/list_folder/get_latest_cursor");
 
     Q_ASSERT(url.isValid());
@@ -959,3 +964,5 @@ bool QDropbox2Folder::getSearch(QNetworkReply*& reply, const QString& query, qui
     result = (lastErrorCode == 0);
     return result;
 }
+
+Q_COREAPP_STARTUP_FUNCTION(registerQDropbox2FolderTypes);

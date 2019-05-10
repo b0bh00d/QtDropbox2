@@ -1,4 +1,5 @@
 #include "qdropbox2.h"
+#include <QCoreApplication>
 
 QDropbox2::QDropbox2(QObject *parent)
     : QObject(parent),
@@ -605,3 +606,5 @@ void QDropbox2::stopEventLoop()
 #endif
     eventLoop->exit();
 }
+
+Q_COREAPP_STARTUP_FUNCTION(registerQDropbox2Types);

@@ -14,7 +14,8 @@
 class QDROPBOXSHARED_EXPORT QDropbox2Folder : public QObject, public IQDropbox2Entity
 {
     Q_OBJECT
-
+    Q_PROPERTY(QDropbox2 *api READ api WRITE setApi)
+    Q_PROPERTY(QString foldername READ foldername WRITE setFoldername)
 public:     // typedefs and enums
 //    typedef QList<QDropbox2EntityInfo*> ContentsList;
 //    typedef QList<QDropbox2EntityInfo*> ContentsList;
@@ -25,7 +26,7 @@ public:
 
       \param parent Parent QObject
      */
-    QDropbox2Folder(QObject* parent = 0);
+    QDropbox2Folder(QObject* parent = nullptr);
 
     /*!
       Copy constructor.
@@ -79,7 +80,9 @@ public:
     /*!
       Returns a pointer to the QDropbox2 instance that is used to connect to Dropbox.
      */
-    QDropbox2* api() const { return _api; }
+    QDropbox2* api() const {
+        return _api;
+    }
 
     /*!
       Set the name of the file you want to access. Remember to use correct Dropbox path
@@ -204,7 +207,7 @@ public:
       \param include_deleted Include deleted files in the result.
       \returns <i>true</i> if the retreival was successful or <i>false</i> if it was not.
     */
-    bool contents(FoldersModel *contents, bool include_folders = true, bool include_deleted = false);
+    Q_INVOKABLE bool contents(FoldersModel *contents, bool include_folders = true, bool include_deleted = false);
 
     /*!
       Gets and returns all the contents of the folder.
@@ -358,3 +361,16 @@ private:        // data members
 Q_DECLARE_METATYPE(QDropbox2Folder);
 //Q_DECLARE_METATYPE(FoldersModel);
 Q_DECLARE_METATYPE(FoldersModel::ContentsList);
+
+static void registerQDropbox2FolderTypes() {
+
+    qmlRegisterType<QDropbox2Folder>("QtDropBox2",
+                               1,0,
+                               "QDropbox2Folder");
+    //    qmlRegisterType<FoldersModel>("QtDropBox2",
+    //                               1,0,
+    //                               "FoldersModel");
+    //    qmlRegisterType<QDropbox2EntityInfo>("QtDropBox2",
+    //                                             1,0,
+    //                                             "QDropbox2EntityInfo");
+}

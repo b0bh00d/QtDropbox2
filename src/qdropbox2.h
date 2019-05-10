@@ -12,6 +12,10 @@
 #include "qdropbox2account.h"
 #include "qdropbox2entityinfo.h"
 
+#include "FoldersModel.h"
+
+#include <QQmlEngine>
+
 /*! The main entry point of QDropbox2, a heavily re-factored version of Daniel Eder's QtDropbox
     to support the new Dropbox APIv2 interface.
 */
@@ -175,7 +179,7 @@ public:
 
       \param t token string
      */
-    void setAccessToken(const QString& token);
+    Q_INVOKABLE void setAccessToken(const QString& token);
 
     /*!
       Returns the current access token in use.
@@ -372,3 +376,21 @@ private:        // data members
 };
 
 Q_DECLARE_METATYPE(QDropbox2::Error);
+
+//Q_DECLARE_METATYPE(QDropbox2);
+static void registerQDropbox2Types() {
+    //    qmlRegisterSingletonType<DropBoxCPP>("QtDropBox2",
+    //                                         1,0,
+    //                                         "DropBoxCPP",
+    //                                         DropBoxCPP::registerComponent);
+    qmlRegisterType<QDropbox2>("QtDropBox2",
+                               1,0,
+                               "QDropbox2");
+    qmlRegisterType<FoldersModel>("QtDropBox2",
+                               1,0,
+                               "FoldersModel");
+//    qmlRegisterType<QDropbox2EntityInfo>("QtDropBox2",
+//                                             1,0,
+//                                             "QDropbox2EntityInfo");
+}
+
