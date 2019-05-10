@@ -7,7 +7,7 @@
 #include "qdropbox2entity.h"
 #include "qdropbox2entityinfo.h"
 
-#import "FoldersModel.h"
+#include "FoldersModel.h"
 
 //! Allows access to folders stored on Dropbox
 

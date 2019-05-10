@@ -1,6 +1,7 @@
 #include "qdropbox2file.h"
 #include <QCoreApplication>
-
+#include <QTemporaryFile>
+#include <QFileInfo>
 QDropbox2File::QDropbox2File(QObject *parent)
     : QIODevice(parent),
       IQDropbox2Entity(),
@@ -146,9 +147,20 @@ bool QDropbox2File::open(QIODevice::OpenMode mode)
     return result;
 }
 
-bool QDropbox2File::downloadFile()
+QString QDropbox2File::downloadFile()
 {
     init(_api,_filename);
+
+    open(QIODevice::ReadOnly);
+    QTemporaryFile _tempFile("DropBoxXXXXXXXXXXXXXXXXXX."+QFileInfo(_filename).suffix());
+    _tempFile.setAutoRemove(false);
+    if (!_tempFile.open()){
+            return "";
+    }else{
+        _tempFile.write(readAll());
+        _tempFile.close();
+        return _tempFile.fileName();
+    }
     QDropbox2File::open(QIODevice::ReadOnly);
 //    return true;
     QDropbox2EntityInfo info(metadata());
@@ -192,7 +204,6 @@ void QDropbox2File::close()
 void QDropbox2File::setApi(QDropbox2 *dropbox)
 {
     _api = dropbox;
-//init(dropbox,filename());
 }
 
 void QDropbox2File::setFilename(const QString& filename)
@@ -369,10 +380,9 @@ bool QDropbox2File::getFile(const QString& filename)
 
     QNetworkReply* reply = sendGET(req);
 
-    CallbackPtr reply_data(new CallbackData());
+    CallbackPtr reply_data(new CallbackData);
     reply_data->callback = &QDropbox2File::resultGetFile;
     replyMap[reply] = reply_data;
-
 
     startEventLoop();
     qDebug()<<"Event loop ended "<<lastErrorMessage;

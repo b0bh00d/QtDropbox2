@@ -92,7 +92,7 @@ public:
      */
      bool open(OpenMode mode);
 //     Q_INVOKABLE bool openReadOnly() { return  open(QIODevice::ReadOnly);}inline
-     Q_INVOKABLE bool downloadFile();
+     Q_INVOKABLE QString downloadFile();
     /*!
       Closes the file buffer. If the file was opened with QIODevice::WriteOnly (or
       QIODevice::ReadWrite) the file content buffer will be flushed and written to
