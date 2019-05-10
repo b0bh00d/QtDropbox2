@@ -22,7 +22,7 @@
 class QDROPBOXSHARED_EXPORT QDropbox2File : public QIODevice, public IQDropbox2Entity
 {
     Q_OBJECT
-
+    Q_PROPERTY(QDropbox2 api READ api WRITE setApi)
 public:     // typedefs and enums
     typedef QList<QDropbox2EntityInfo> RevisionsList;
 
@@ -32,7 +32,7 @@ public:
 
       \param parent Parent QObject
      */
-    QDropbox2File(QObject* parent = 0);
+    QDropbox2File(QObject* parent = nullptr);
 
     /*!
       Copy constructor.
@@ -90,6 +90,7 @@ public:
      */
     bool open(OpenMode mode);
 
+
     /*!
       Closes the file buffer. If the file was opened with QIODevice::WriteOnly (or
       QIODevice::ReadWrite) the file content buffer will be flushed and written to
@@ -102,12 +103,12 @@ public:
 
       \param dropbox Pointer to the QDropbox2 object
      */
-    void setApi(QDropbox2* dropbox);
+    Q_INVOKABLE void setApi(QDropbox2* dropbox);
 
     /*!
       Returns a pointer to the QDropbox2 instance that is used to connect to Dropbox.
      */
-    QDropbox2* api() const { return _api; }
+    Q_INVOKABLE QDropbox2* api() const { return _api; }
 
     /*!
       Set the name of the file you want to access. Remember to use correct Dropbox path

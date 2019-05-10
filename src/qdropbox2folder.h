@@ -14,7 +14,7 @@
 class QDROPBOXSHARED_EXPORT QDropbox2Folder : public QObject, public IQDropbox2Entity
 {
     Q_OBJECT
-
+    Q_PROPERTY(QDropbox2 api READ api WRITE setApi)
 public:     // typedefs and enums
 //    typedef QList<QDropbox2EntityInfo*> ContentsList;
 //    typedef QList<QDropbox2EntityInfo*> ContentsList;
