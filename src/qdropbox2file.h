@@ -217,7 +217,7 @@ public:
 
       \returns <i>true</i> if the file was successfully moved or <i>false</i> if there was an error.
     */
-    bool move(const QString& to_path);
+    Q_INVOKABLE bool move(const QString& to_path);
 
     /*!
       Copy the contents of a file to a new location in the
@@ -456,6 +456,8 @@ private:        // data members
     SessionMap  upload_sessions;
 
     QDropbox2EntityInfo *_metadata;
+
+    bool initialized = false;
 };
 
 Q_DECLARE_METATYPE(QDropbox2File);

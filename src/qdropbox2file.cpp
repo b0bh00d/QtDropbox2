@@ -66,7 +66,7 @@ void QDropbox2File::init(QDropbox2 *api,
         position          = 0;
         currentThreshold  = 0;
         fileExists        = false;
-
+        initialized       = true;
         if(api)
             accessToken = api->accessToken();
 
@@ -1053,6 +1053,7 @@ bool QDropbox2File::requestRemoval(bool permanently)
 
 bool QDropbox2File::move(const QString& to_path)
 {
+    if (!initialized) init(_api,_filename);
     return requestMove(to_path);
 }
 
