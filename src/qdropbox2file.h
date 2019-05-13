@@ -22,17 +22,19 @@
 class QDROPBOXSHARED_EXPORT QDropbox2File : public QIODevice, public IQDropbox2Entity
 {
     Q_OBJECT
-
+    Q_PROPERTY(QDropbox2 *api READ api WRITE setApi)
+    Q_PROPERTY(QString filename READ filename WRITE setFilename)
 public:     // typedefs and enums
     typedef QList<QDropbox2EntityInfo> RevisionsList;
 
 public:
+    Q_ENUM(OpenMode)
     /*!
       Default constructor. Use setApi() and setFilename() to access Dropbox.
 
       \param parent Parent QObject
      */
-    QDropbox2File(QObject* parent = 0);
+    QDropbox2File(QObject* parent = nullptr);
 
     /*!
       Copy constructor.
@@ -49,7 +51,7 @@ public:
       \param api Pointer to a QDropbox2 that is connected to an account.
       \param parent Parent QObject
      */
-    QDropbox2File(QDropbox2* api, QObject* parent = 0);
+    QDropbox2File(QDropbox2* api, QObject* parent = nullptr);
 
     /*!
       Creates an instance of QDropbox2File that may access a file on Dropbox.
@@ -88,8 +90,9 @@ public:
 
       \param mode The access mode of the file. Equivalent to QIODevice.
      */
-    bool open(OpenMode mode);
-
+     bool open(OpenMode mode);
+//     Q_INVOKABLE bool openReadOnly() { return  open(QIODevice::ReadOnly);}inline
+     Q_INVOKABLE QString downloadFile();
     /*!
       Closes the file buffer. If the file was opened with QIODevice::WriteOnly (or
       QIODevice::ReadWrite) the file content buffer will be flushed and written to
@@ -102,12 +105,12 @@ public:
 
       \param dropbox Pointer to the QDropbox2 object
      */
-    void setApi(QDropbox2* dropbox);
+    Q_INVOKABLE void setApi(QDropbox2* dropbox);
 
     /*!
       Returns a pointer to the QDropbox2 instance that is used to connect to Dropbox.
      */
-    QDropbox2* api() const { return _api; }
+    Q_INVOKABLE QDropbox2* api() const { return _api; }
 
     /*!
       Set the name of the file you want to access. Remember to use correct Dropbox path
@@ -193,7 +196,7 @@ public:
 
       \returns A <i>valid</i> QUrl suitable for use with QDesktopServices::openUrl(), or an <i>invalid</i> QUrl on failure.
     */
-    QUrl temporaryLink();
+    Q_INVOKABLE QUrl temporaryLink();
 
     /*!
       Remove the file from Dropbox.
@@ -214,7 +217,7 @@ public:
 
       \returns <i>true</i> if the file was successfully moved or <i>false</i> if there was an error.
     */
-    bool move(const QString& to_path);
+    Q_INVOKABLE bool move(const QString& to_path);
 
     /*!
       Copy the contents of a file to a new location in the
@@ -305,6 +308,7 @@ signals:
      */
     void    signal_errorOccurred(int errorcode, const QString& errormessage = QString());
 
+
     /*!
       Emitted as file contents are downloaded from Dropbox.
 
@@ -312,6 +316,7 @@ signals:
       \param bytesTotal Total expected size of the payload.
      */
     void    signal_downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void signal_downloadFinished();
 
     /*!
       Emitted as file contents are uploaded to Dropbox.
@@ -451,6 +456,29 @@ private:        // data members
     SessionMap  upload_sessions;
 
     QDropbox2EntityInfo *_metadata;
+
+    bool initialized = false;
 };
 
 Q_DECLARE_METATYPE(QDropbox2File);
+static void registerQDropbox2FileTypes() {
+
+    qmlRegisterType<QDropbox2File>("QtDropBox2",
+                                     1,0,
+                                     "QDropbox2File");
+//    qmlRegisterSingletonType<QDropbox2File>("QtDropBox2",
+//                                   1,0,
+//                                   "QDropbox2FileSignleton",
+//                                   [](QQmlEngine *engine,
+//                                      QJSEngine *scriptEngine) -> QObject*{
+//                                       Q_UNUSED(engine)
+//                                       Q_UNUSED(scriptEngine)
+//                                       return new QDropbox2File();
+//                                   });
+
+//    qRegisterMetaType<QIODevice::OpenMode>("OpenMode");
+//    qmlRegisterUncreatableType<QIODevice::OpenMode>("QtDropBox2",
+//                                                    1, 0,
+//                                                    "OpenMode",
+//                                             "Cannot create WarningLevel in QML");
+}

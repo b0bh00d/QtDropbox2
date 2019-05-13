@@ -32,9 +32,9 @@ private Q_SLOTS:
 #if defined(QDROPBOX2_FOLDER_TESTS)
     void createFolder();
     void copyFolder();
-    void removeFolder1();
     void moveFolder();
     void getContents();
+    void removeFolder1();
     void checkForChanges();
     void waitForChanges();
 #if !defined(QDROPBOX2_FILE_TESTS)
@@ -53,7 +53,9 @@ private Q_SLOTS:
     void downloadFile();
     void removeFile();
 #endif
-
+//#if defined (QDROPBOX2_TEST_DOWNLOAD)
+//    void downloadFile();
+//#endif
 private:        // data members
 #if defined(QDROPBOX2_ACCOUNT_TESTS) || defined(QDROPBOX2_FOLDER_TESTS) || defined(QDROPBOX2_FILE_TESTS)
     QDropbox2*  db2;

@@ -1,4 +1,5 @@
 #include "qdropbox2.h"
+#include <QCoreApplication>
 
 QDropbox2::QDropbox2(QObject *parent)
     : QObject(parent),
@@ -108,7 +109,7 @@ void QDropbox2::slot_networkRequestFinished(QNetworkReply *reply)
     qDebug() << "response: " << reply->bytesAvailable() << "bytes" << endl;
     qDebug() << "status code: " << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toString() << endl;
     qDebug() << "== begin response ==" << endl << lastResponse << endl << "== end response ==" << endl;
-    qDebug() << "req#" << nr << " is of type " << requestMap[nr].type << endl;
+//    qDebug() << "req#" << nr << " is of type " << requestMap[nr].type << endl;
 #endif
 
     lastErrorCode = reply->error();
@@ -192,7 +193,7 @@ bool QDropbox2::createAPIv2Reqeust(QUrl request, QNetworkRequest& req, bool incl
 QNetworkReply* QDropbox2::sendPOST(QNetworkRequest& rq, QByteArray postdata)
 {
 #ifdef QTDROPBOX_DEBUG
-    qDebug() << "sendPOST() host = " << host << endl;
+//    qDebug() << "sendPOST() host = " << host << endl;
 #endif
 
     return QNAM.post(rq, postdata);
@@ -201,7 +202,7 @@ QNetworkReply* QDropbox2::sendPOST(QNetworkRequest& rq, QByteArray postdata)
 QNetworkReply*  QDropbox2::sendGET(QNetworkRequest& rq)
 {
 #ifdef QTDROPBOX_DEBUG
-    qDebug() << "sendGET() host = " << host << endl;
+//    qDebug() << "sendGET() host = " << host << endl;
 #endif
 
     return QNAM.get(rq);
@@ -605,3 +606,5 @@ void QDropbox2::stopEventLoop()
 #endif
     eventLoop->exit();
 }
+
+Q_COREAPP_STARTUP_FUNCTION(registerQDropbox2Types);

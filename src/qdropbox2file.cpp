@@ -1,5 +1,7 @@
 #include "qdropbox2file.h"
-
+#include <QCoreApplication>
+#include <QTemporaryFile>
+#include <QFileInfo>
 QDropbox2File::QDropbox2File(QObject *parent)
     : QIODevice(parent),
       IQDropbox2Entity(),
@@ -39,8 +41,11 @@ QDropbox2File::~QDropbox2File()
         delete eventLoop;
 }
 
-void QDropbox2File::init(QDropbox2 *api, const QString& filename, qint64 threshold)
+void QDropbox2File::init(QDropbox2 *api,
+                         const QString& filename,
+                         qint64 threshold)
 {
+    qDebug()<<"Init Called "<<filename;
     if(filename.compare("/") == 0 || filename.isEmpty())
     {
         lastErrorCode = QDropbox2::APIError;
@@ -61,7 +66,7 @@ void QDropbox2File::init(QDropbox2 *api, const QString& filename, qint64 thresho
         position          = 0;
         currentThreshold  = 0;
         fileExists        = false;
-
+        initialized       = true;
         if(api)
             accessToken = api->accessToken();
 
@@ -89,10 +94,12 @@ bool QDropbox2File::open(QIODevice::OpenMode mode)
     bool result = false;
 
 #ifdef QTDROPBOX_DEBUG
-    qDebug() << "QDropbox2File::open(...)" << endl;
+    qDebug() << "QDropbox2File::open(...)"<<" for "<<filename() << endl;
 #endif
-    if(!QIODevice::open(mode))
+    if(!QIODevice::open(mode)){
+        qDebug()<<"Can't open";
         return result;
+    }
 
   /*  if(isMode(QIODevice::NotOpen))
         return true; */
@@ -108,8 +115,7 @@ bool QDropbox2File::open(QIODevice::OpenMode mode)
     // with truncate - or if append was not set
     if(isMode(QIODevice::WriteOnly) &&
        (isMode(QIODevice::Truncate) || !isMode(QIODevice::Append))
-      )
-    {
+      ){
 #ifdef QTDROPBOX_DEBUG
     qDebug() << "QDropbox2File: _buffer cleared." << endl;
 #endif
@@ -117,8 +123,7 @@ bool QDropbox2File::open(QIODevice::OpenMode mode)
         position = 0;
         result = true;
     }
-    else
-    {
+    else{
 #ifdef QTDROPBOX_DEBUG
     qDebug() << "QDropbox2File: reading file content" << endl;
 #endif
@@ -132,10 +137,61 @@ bool QDropbox2File::open(QIODevice::OpenMode mode)
             result = (lastErrorCode == 0 || lastErrorCode == 200 || fileExists);
             if(fileExists)
                 obtainMetadata();
+        }else{
+#ifdef QTDROPBOX_DEBUG
+            qDebug() << "QDropbox2File: File already exists" << endl;
+#endif
         }
     }
 
     return result;
+}
+
+QString QDropbox2File::downloadFile()
+{
+    init(_api,_filename);
+
+    open(QIODevice::ReadOnly);
+    QTemporaryFile _tempFile("DropBoxXXXXXXXXXXXXXXXXXX."+QFileInfo(_filename).suffix());
+    _tempFile.setAutoRemove(false);
+    if (!_tempFile.open()){
+            return "";
+    }else{
+        _tempFile.write(readAll());
+        _tempFile.close();
+        return _tempFile.fileName();
+    }
+    QDropbox2File::open(QIODevice::ReadOnly);
+//    return true;
+    QDropbox2EntityInfo info(metadata());
+//    qDebug()<<"MetaID Empty? "<<info.id().isEmpty();
+
+    qDebug()<<"FileName: " << filename();
+
+    QByteArray data = readAll();
+//    QByteArray local_md5 = QCryptographicHash::hash(data, QCryptographicHash::Md5);
+//    qDebug()<<"Compare MD5"<<md5 <<" with "<<local_md5;
+//#ifdef SHOW_OUTPUT
+    QTextStream out(stdout);
+    out << filename() <<" == "<<data.size()<<":\n";
+    if(info.isDeleted())
+        out << "\t     isDeleted: true\n";
+    else
+    {
+        out << "\t            id: " << info.id() << "\n";
+        out << "\tclientModified: " << info.clientModified().toString() << "\n";
+        out << "\tserverModified: " << info.serverModified().toString() << "\n";
+        out << "\t  revisionHash: " << info.revisionHash() << "\n";
+        out << "\t         bytes: " << info.bytes() << "\n";
+        out << "\t          size: " << info.size() << "\n";
+        out << "\t          path: " << info.path() << "\n";
+        out << "\t      isShared: " << (info.isShared() ? "true" : "false") << "\n";
+        out << "\t   isDirectory: " << (info.isDirectory() ? "true" : "false") << "\n";
+    }
+    out.flush();
+    qDebug()<<"Buffer size: "<<_buffer->size();
+    return true;
+//#endif
 }
 
 void QDropbox2File::close()
@@ -294,6 +350,7 @@ QNetworkReply* QDropbox2File::sendGET(QNetworkRequest& rq)
     QNetworkReply *reply = QNAM.get(rq);
     connect(this, &QDropbox2File::signal_operationAborted, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::downloadProgress, this, &QDropbox2File::signal_downloadProgress);
+//    connect(reply, &QNetworkReply::finished,this,&QDropbox2File::signal_downloadFinished);
     return reply;
 }
 
@@ -309,8 +366,10 @@ bool QDropbox2File::getFile(const QString& filename)
     url.setPath("/2/files/download");
 
     QNetworkRequest req;
-    if(!_api->createAPIv2Reqeust(url, req))
+    if(!_api->createAPIv2Reqeust(url, req)){
+        qDebug()<<"Can't create the request";
         return result;
+    }
 
     req.setRawHeader("Dropbox-API-arg", QString("{ \"path\": \"%1\" }")
                                                 .arg((filename.compare("/") == 0) ? "" : filename).toUtf8());
@@ -326,13 +385,14 @@ bool QDropbox2File::getFile(const QString& filename)
     replyMap[reply] = reply_data;
 
     startEventLoop();
+    qDebug()<<"Event loop ended "<<lastErrorMessage;
 
     fileExists = !lastErrorMessage.contains("path/not_found");
     result = (lastErrorCode == 0 || lastErrorCode == 200 || lastErrorCode == 206 || !fileExists);
     if(!result)
     {
 #ifdef QTDROPBOX_DEBUG
-        qDebug() << "QDropbox2File::getFileContent ReadError: " << lastErrorCode << lastErrorMessage << endl;
+        qDebug() << "QDropbox2File::getFileContent ReadError: " << lastErrorCode << lastErrorMessage <<" for "<<filename<< endl;
 #endif
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
     }
@@ -347,11 +407,11 @@ void QDropbox2File::resultGetFile(QNetworkReply *reply, CallbackPtr /*reply_data
     QByteArray response = reply->readAll();
     QString resp_str;
 
-//#ifdef QTDROPBOX_DEBUG
-//    resp_str = QString(response.toHex());
-//    qDebug() << "QDropbox2File::replyFileContent response = " << resp_str << endl;
-//
-//#endif
+#ifdef QTDROPBOX_DEBUG
+    resp_str = QString(response.toHex());
+    qDebug() << "QDropbox2File::replyFileContent response = " << resp_str << endl;
+
+#endif
 
     if(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == QDROPBOX_V2_ERROR)
     {
@@ -371,7 +431,7 @@ void QDropbox2File::resultGetFile(QNetworkReply *reply, CallbackPtr /*reply_data
 
         lastErrorCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 #ifdef QTDROPBOX_DEBUG
-        qDebug() << "QDropbox2File::replyFileContent jason.valid = " << json.isValid() << endl;
+//        qDebug() << "QDropbox2File::replyFileContent jason.valid = " << json.isValid() << endl;
 #endif
 
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
@@ -496,7 +556,7 @@ void QDropbox2File::resultPutFile(QNetworkReply *reply, CallbackPtr /*reply_data
 
         lastErrorCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 #ifdef QTDROPBOX_DEBUG
-        qDebug() << "QDropbox2File::resultPutFile jason.valid = " << json.isValid() << endl;
+//        qDebug() << "QDropbox2File::resultPutFile jason.valid = " << json.isValid() << endl;
 #endif
 
         emit signal_errorOccurred(lastErrorCode, lastErrorMessage);
@@ -623,6 +683,7 @@ void QDropbox2File::stopEventLoop()
     if(!eventLoop)
         return;
     eventLoop->exit();
+    eventLoop = nullptr;
 }
 
 QDropbox2EntityInfo QDropbox2File::metadata()
@@ -992,6 +1053,7 @@ bool QDropbox2File::requestRemoval(bool permanently)
 
 bool QDropbox2File::move(const QString& to_path)
 {
+    if (!initialized) init(_api,_filename);
     return requestMove(to_path);
 }
 
@@ -1153,3 +1215,5 @@ QUrl QDropbox2File::requestStreamingLink()
 
     return result;
 }
+
+Q_COREAPP_STARTUP_FUNCTION(registerQDropbox2FileTypes);
